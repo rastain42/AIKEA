@@ -1,10 +1,11 @@
-package com.security.controller;
+package com.ynov.Aikea.controller;
 
-import com.security.config.JwtTokenProvider;
-import com.security.dto.AuthResponseDTO;
-import com.security.dto.LoginDTO;
-import com.security.entity.User;
-import com.security.service.UserService;
+
+import com.ynov.Aikea.config.JwtTokenProvider;
+import com.ynov.Aikea.dto.AuthResponseDTO;
+import com.ynov.Aikea.dto.LoginDTO;
+import com.ynov.Aikea.entity.User;
+import com.ynov.Aikea.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;

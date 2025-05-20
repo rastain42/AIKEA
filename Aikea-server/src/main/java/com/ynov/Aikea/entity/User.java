@@ -1,4 +1,4 @@
-package com.security.entity;
+package com.ynov.Aikea.entity;
 
 import jakarta.persistence.*;
 import lombok.Getter;
