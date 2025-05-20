@@ -9,6 +9,7 @@ services:
       MYSQL_USER: ${MYSQ_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
     ports:
       - "3306:3306"
     volumes:
