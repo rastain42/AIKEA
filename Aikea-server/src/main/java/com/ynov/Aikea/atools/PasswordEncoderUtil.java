@@ -1,4 +1,4 @@
-package com.security.atools;
+package com.ynov.Aikea.atools;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 

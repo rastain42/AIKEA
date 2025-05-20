@@ -1,4 +1,4 @@
-package com.security.config;
+package com.ynov.Aikea.config;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

@@ -1,4 +1,4 @@
-package com.security.config;
+package com.ynov.Aikea.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

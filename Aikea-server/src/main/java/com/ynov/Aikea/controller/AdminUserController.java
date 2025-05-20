@@ -1,6 +1,6 @@
-package com.security.controller;
+package com.ynov.Aikea.controller;
 
-import com.security.service.UserService;
+import com.ynov.Aikea.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

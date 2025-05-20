@@ -1,4 +1,4 @@
-package com.security.controller;
+package com.ynov.Aikea.controller;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,7 +1,7 @@
-package com.security.controller;
+package com.ynov.Aikea.controller;
 
-import com.security.entity.User;
-import com.security.service.UserService;
+import com.ynov.Aikea.service.UserService;
+import com.ynov.Aikea.entity.User;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

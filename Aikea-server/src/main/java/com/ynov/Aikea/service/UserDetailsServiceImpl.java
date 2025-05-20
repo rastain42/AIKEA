@@ -1,8 +1,8 @@
-package com.security.service;
+package com.ynov.Aikea.service;
 
-import com.security.entity.Role;
-import com.security.entity.User;
-import com.security.repository.UserRepository;
+import com.ynov.Aikea.entity.Role;
+import com.ynov.Aikea.entity.User;
+import com.ynov.Aikea.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
