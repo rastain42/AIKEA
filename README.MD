@@ -34,3 +34,14 @@ Il vous faudra pouvoir configurer et lancé un évènement de génération à la
 
 ### Pour votre Front (mobile)
 Il faudra que, depuis votre téléphone, vous soyez en mesure d’afficher une liste de données basée sur une requête avec quelques règles métiers 
+
+
+## how to use
+
+exemple:
+POST http://localhost:8080/generate-image/justImage
+
+body: {
+"prompt": "Une maison moderne au bord de la mer avec de grandes fenêtres, des meubles minimalistes et une vue sur l'océan au coucher du soleil",
+"quality": "High"
+}

@@ -17,6 +17,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
@@ -36,15 +37,20 @@ public class ImageGenerationService {
 
     private final MediaType imageType= MediaType.IMAGE_PNG ;
 
-    public GeneratedImageDTO generateAndSaveImage(String prompt,
-                                                  ImageProviderEnum provider, QualityEnum quality) throws Exception {
-        byte[] content = null;
+    public GeneratedImageDTO generateAndSaveImage(String prompt, QualityEnum quality) throws Exception {
+        // Obtenir l'image de DALL-E sous forme de tableau d'octets
+        byte[] content = getImageFromDalle(prompt, quality);
 
-            content = getImageFromDalle(prompt, quality);
+        // Vérifier que l'image a bien été obtenue
+        if (content == null || content.length == 0) {
+            throw new RuntimeException("Failed to generate image from DALL-E");
+        }
 
+        // Enregistrer l'image dans la base de données
+        RecordedImage recordedImage = saveImage(prompt, getImageFromDalle(prompt, quality));
 
-        RecordedImage recordedImage = saveImage(prompt,content) ;
-        saveOnComputer(prompt, content) ;
+        // Enregistrer l'image sur le disque
+        saveOnComputer(prompt, content);
 
         return GeneratedImageDTO
                 .builder()
@@ -52,8 +58,9 @@ public class ImageGenerationService {
                 .internalID(recordedImage.getId())
                 .externalID(recordedImage.getCloudID())
                 .storageURL(recordedImage.getCloudURI())
-                .build() ;
+                .build();
     }
+
 
     public byte[] getImageFromDalle(String prompt, QualityEnum quality) throws Exception {
 
@@ -134,25 +141,45 @@ public class ImageGenerationService {
         return recordedImage ;
     }
 
-    public void saveOnComputer(String prompt, byte[] imageBytes) throws IOException, URISyntaxException {
-        String simplifyName = "../image/" + prompt
+    public void saveOnComputer(String prompt, byte[] imageBytes) throws IOException {
+        if (imageBytes == null) {
+            throw new IllegalArgumentException("Image bytes cannot be null");
+        }
+
+        // Utilisez un répertoire connu dans le projet
+        String basePath = "src/main/resources/static/images/";
+
+        // Créez un nom de fichier à partir du prompt
+        String filename = prompt
                 .substring(0, Math.min(prompt.length(), 20))
                 .toLowerCase()
                 .replace(",","")
                 .replace("'","")
                 .replace(" ","_")
-                + ".png" ;
+                + ".png";
 
-        Path targetFilePath = getAvailablePath(Paths.get(simplifyName)) ;
-        Files.createDirectories(targetFilePath.getParent());
-
-        try (FileOutputStream fos = new FileOutputStream(targetFilePath.toFile())) {
-            fos.write(imageBytes);
-            System.out.println("Image saved With name " + targetFilePath.getFileName());
-        } catch (IOException e) {
-            e.printStackTrace();
+        // Construisez le chemin complet
+        File directory = new File(basePath);
+        if (!directory.exists()) {
+            System.out.println("Creating directory: " + directory.getAbsolutePath());
+            boolean created = directory.mkdirs();
+            if (!created) {
+                System.err.println("Failed to create directory");
+            }
         }
 
+        // Chemin complet du fichier
+        File file = new File(directory, filename);
+        System.out.println("Saving image to: " + file.getAbsolutePath());
+
+        // Écrire le fichier
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            fos.write(imageBytes);
+            System.out.println("Image saved successfully. Size: " + imageBytes.length + " bytes");
+        } catch (IOException e) {
+            System.err.println("Error saving image: " + e.getMessage());
+            throw e;
+        }
     }
 
     private static Path getAvailablePath(Path originalPath) {
