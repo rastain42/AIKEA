@@ -1,6 +1,5 @@
 package com.ynov.Aikea.controller;
 
-
 import com.ynov.Aikea.config.JwtTokenProvider;
 import com.ynov.Aikea.dto.AuthResponseDTO;
 import com.ynov.Aikea.dto.LoginDTO;

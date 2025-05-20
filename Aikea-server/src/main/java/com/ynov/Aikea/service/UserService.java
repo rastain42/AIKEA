@@ -1,9 +1,9 @@
 package com.ynov.Aikea.service;
 
-
 import com.ynov.Aikea.entity.Role;
 import com.ynov.Aikea.entity.User;
 import com.ynov.Aikea.repository.UserRepository;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
