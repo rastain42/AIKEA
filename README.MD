@@ -10,7 +10,15 @@ lien du cours : https://docs.google.com/presentation/d/16FulfszIIGmVhNe2AIovsLeA
 - premier prompt sur le générateur d'images : "fais moi une décoration d'interieur pour une maison/appartement: {input utilisateur}"
 - deuxième prompt décris cet intérieur et propose moi du mobilier dans ce style
 
-## technique
+## attendus techniques
+
+- Des entités propres permettant la création et l’utilisation d’une DB
+- Des routes REST permettant d'interagir avec votre AI.
+- Des traitements complexes permettant d'exécuter votre logique métier de façon propre
+- Une page présentant votre produit (Réactive)
+- Une page permettant d'utiliser votre produit (Pas nécessairement réactive)
+- Une page permettant de configurer votre produit (Pas besoin de vrai système d’identification). (Pas nécessairement réactive)
+
 ### Pour Votre Back
 Créer une API connectée à une IA capable de contacter une LLM et un générateur d’image (possiblement tous deux d’Open AI).
 Il devra permettre la création d’un PDF basé sur une jointure entre votre texte et l’image
