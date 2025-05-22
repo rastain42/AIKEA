@@ -28,9 +28,4 @@ public class TextGenerationService {
         String generatedText = openAICallsService.generateWithChatGPTFromLocalImage(basePromptImage, imagePath, genrationContext);
         return GeneratedTextDTO.builder().text(generatedText).build();
     }
-
-    public GeneratedTextDTO generateTextFromImage(byte[] image) {
-        String generatedText = openAICallsService.generateWithChatGPTFromLocalImageRaw(basePromptImage, image, genrationContext);
-        return GeneratedTextDTO.builder().text(generatedText).build();
-    }
 }

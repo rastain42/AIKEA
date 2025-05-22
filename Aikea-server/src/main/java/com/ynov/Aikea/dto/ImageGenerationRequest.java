@@ -1,6 +1,5 @@
 package com.ynov.Aikea.dto;
 
-import com.ynov.Aikea.atools.QualityEnum;
 import lombok.Data;
 import lombok.Setter;
 

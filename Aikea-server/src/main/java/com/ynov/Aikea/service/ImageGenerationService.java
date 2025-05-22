@@ -212,7 +212,7 @@ public class ImageGenerationService {
             String cleanWord = word.replaceAll("[^a-zA-Z0-9]", "");
             if (cleanWord.isEmpty()) continue;
 
-            if (fileName.length() + cleanWord.length() + (fileName.length() > 0 ? 1 : 0) > maxLength) {
+            if (fileName.length() + cleanWord.length() + (!fileName.isEmpty() ? 1 : 0) > maxLength) {
                 break;
             }
 

@@ -14,8 +14,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
-
 import static com.ynov.Aikea.atools.CloudinaryEnum.PUBLIC_ID;
 import static com.ynov.Aikea.atools.CloudinaryEnum.SECURE_URL;
 

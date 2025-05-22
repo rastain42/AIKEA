@@ -25,16 +25,11 @@ public class ImageController {
         QualityEnum qualityEnum;
         GeneratedImageDTO dto;
 
-        switch (quality) {
-            case "Medium":
-                qualityEnum = QualityEnum.MEDIUM;
-                break;
-            case "High":
-                qualityEnum = QualityEnum.HIGH;
-                break;
-            default:
-                qualityEnum = QualityEnum.LOW;
-        }
+        qualityEnum = switch (quality) {
+            case "Medium" -> QualityEnum.MEDIUM;
+            case "High" -> QualityEnum.HIGH;
+            default -> QualityEnum.LOW;
+        };
 
         try {
             // Assurez-vous que le prompt est propre pour éviter les problèmes de noms de fichiers
