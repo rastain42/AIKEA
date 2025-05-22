@@ -2,8 +2,8 @@ package com.ynov.Aikea.service;
 
 import com.ynov.Aikea.atools.QualityEnum;
 import com.ynov.Aikea.dto.GeneratedImageDTO;
-import com.ynov.Aikea.dto.UploadedImageDTO;
 import com.ynov.Aikea.entity.RecordedImage;
+import com.ynov.Aikea.entity.Upload;
 import com.ynov.Aikea.repository.RecordedImagesRepository;
 import io.github.sashirestela.openai.domain.image.ImageRequest;
 import io.github.sashirestela.openai.domain.image.ImageResponseFormat;
@@ -14,10 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,11 +26,11 @@ import java.nio.file.Paths;
 @RequiredArgsConstructor
 public class ImageGenerationService {
 
-    private final OpenAICallsService openAICallsService ;
-    private final ImageUploadCloudinaryService imageUploadCloudinaryService;
-    private final RecordedImagesRepository recordedImagesRepository ;
+    private final OpenAICallsService openAICallsService;
+    private final UploadService uploadService;
+    private final RecordedImagesRepository recordedImagesRepository;
 
-    private final MediaType imageType= MediaType.IMAGE_PNG ;
+    private final MediaType imageType = MediaType.IMAGE_PNG;
 
     public GeneratedImageDTO generateAndSaveImage(String prompt, QualityEnum quality) throws Exception {
         // Obtenir l'image de DALL-E sous forme de tableau d'octets
@@ -43,7 +42,7 @@ public class ImageGenerationService {
         }
 
         // Enregistrer l'image dans la base de données
-        RecordedImage recordedImage = saveImage(prompt, content);
+        RecordedImage recordedImage = saveImage(prompt, content, quality);
 
         // Enregistrer l'image sur le disque
         saveOnComputer(prompt, content);
@@ -59,7 +58,6 @@ public class ImageGenerationService {
 
 
     public byte[] getImageFromDalle(String prompt, QualityEnum quality) throws Exception {
-
         ImageRequest imageRequest = null;
 
         if(quality == QualityEnum.LOW) {
@@ -114,45 +112,110 @@ public class ImageGenerationService {
     }
 
 
-    public RecordedImage saveImage(String prompt, byte[] content) throws Exception {
-        // Save on Cloud
-        String fileName = generateFileNameFromPrompt(prompt, 100) ;
-        UploadedImageDTO uploaderValue = imageUploadCloudinaryService.uploadImage(content) ;
+    public RecordedImage saveImage(String prompt, byte[] content, QualityEnum quality) throws Exception {
+        // Créer un nom de fichier basé sur le prompt
+        String fileName = generateFileNameFromPrompt(prompt, 100);
 
-        if(uploaderValue.url() == null || uploaderValue.id() == null) {
-            throw new Exception("Error when uploading image to the cloud");
-        }
+        // Créer un MultipartFile à partir du tableau de bytes
+        MultipartFile multipartFile = new ByteArrayMultipartFile(
+                fileName,
+                fileName,
+                "image/png",
+                content
+        );
 
-        // Save on DB
+        // Utiliser UploadService pour enregistrer l'image
+        Upload savedUpload = uploadService.saveFile(
+                multipartFile,
+                "AI_GEN",  // identifiant externe pour les images générées par IA
+                "ai-generated",  // tag1
+                "dall-e",       // tag2
+                quality != null ? quality.toString() : "MEDIUM",  // tag3 basé sur la qualité
+                prompt,         // description (utiliser le prompt)
+                true,           // isPublic (rendre public par défaut)
+                null,           // uploaderId (null car généré par système)
+                "AI-SYSTEM"     // uploaderName
+        );
+
+        // Créer et sauvegarder un RecordedImage pour maintenir la compatibilité
         RecordedImage recordedImage = RecordedImage
                 .builder()
                 .imageName(fileName)
-                .cloudURI(uploaderValue.url())
-                .cloudID(uploaderValue.id())
+                .cloudURI(savedUpload.getFilePath())  // Utiliser le chemin du fichier sauvegardé
+                .cloudID(String.valueOf(savedUpload.getId()))  // Utiliser l'ID de l'upload comme ID externe
                 .prompt(prompt)
                 .build();
 
-        recordedImagesRepository.save(recordedImage) ;
+        recordedImagesRepository.save(recordedImage);
 
-        return recordedImage ;
+        return recordedImage;
+    }
+
+    // Classe personnalisée pour éviter d'avoir besoin de MockMultipartFile
+    public static class ByteArrayMultipartFile implements MultipartFile {
+        private final byte[] content;
+        private final String name;
+        private final String originalFilename;
+        private final String contentType;
+
+        public ByteArrayMultipartFile(String name, String originalFilename, String contentType, byte[] content) {
+            this.name = name;
+            this.originalFilename = originalFilename;
+            this.contentType = contentType;
+            this.content = content;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public String getOriginalFilename() {
+            return originalFilename;
+        }
+
+        @Override
+        public String getContentType() {
+            return contentType;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return content == null || content.length == 0;
+        }
+
+        @Override
+        public long getSize() {
+            return content.length;
+        }
+
+        @Override
+        public byte[] getBytes() throws IOException {
+            return content;
+        }
+
+        @Override
+        public InputStream getInputStream() throws IOException {
+            return new ByteArrayInputStream(content);
+        }
+
+        @Override
+        public void transferTo(File dest) throws IOException, IllegalStateException {
+            try (FileOutputStream fos = new FileOutputStream(dest)) {
+                fos.write(content);
+            }
+        }
     }
 
     public void saveOnComputer(String prompt, byte[] imageBytes) throws IOException {
-        if (imageBytes == null) {
-            throw new IllegalArgumentException("Image bytes cannot be null");
+        // Spécifiez le chemin où vous souhaitez sauvegarder l'image
+        String basePath = "src/main/resources/static/images";
+        String filename = generateFileNameFromPrompt(prompt, 50);
+
+        if (filename == null || filename.isEmpty()) {
+            filename = "generated_image_" + System.currentTimeMillis() + ".png";
         }
-
-        // Utilisez un répertoire connu dans le projet
-        String basePath = "src/main/resources/static/images/";
-
-        // Créez un nom de fichier à partir du prompt
-        String filename = prompt
-                .substring(0, Math.min(prompt.length(), 20))
-                .toLowerCase()
-                .replace(",","")
-                .replace("'","")
-                .replace(" ","_")
-                + ".png";
 
         // Construisez le chemin complet
         File directory = new File(basePath);
@@ -223,7 +286,6 @@ public class ImageGenerationService {
             fileName.append(cleanWord);
         }
 
-        return !fileName.isEmpty() ? fileName.toString().toLowerCase() + ".png" : "file";
+        return !fileName.isEmpty() ? fileName.toString().toLowerCase() + ".png" : "file.png";
     }
-
 }

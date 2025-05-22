@@ -43,6 +43,9 @@ Il faudra que, depuis votre téléphone, vous soyez en mesure d’afficher une l
 
 ### back
 
+- run le docker compose
+- run aikea server
+
 exemple:
 POST http://localhost:8080/generate-image/justImage
 
