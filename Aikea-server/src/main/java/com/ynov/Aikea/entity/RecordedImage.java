@@ -1,9 +1,6 @@
 package com.ynov.Aikea.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
@@ -13,15 +10,22 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
+@Table(name = "recorded_image")
 public class RecordedImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
-    
-    private String cloudURI;
-    private String cloudID;
-    private String imageName;
-    private String prompt ;
 
+    @Column(name = "cloud_uri")
+    private String cloudURI;
+
+    @Column(name = "cloud_id")
+    private String cloudID;
+
+    @Column(name = "image_name")
+    private String imageName;
+
+    @Column(name = "prompt")
+    private String prompt;
 }

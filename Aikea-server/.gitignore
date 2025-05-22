@@ -33,3 +33,8 @@ build/
 .vscode/
 
 /.env
+
+
+src/main/resources/application.yml
+src/main/resources/application-*.yml
+src/main/resources/application-*.properties
