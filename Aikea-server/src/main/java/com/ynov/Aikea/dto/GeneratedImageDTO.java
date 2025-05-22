@@ -1,7 +1,14 @@
 package com.ynov.Aikea.dto;
 
 import lombok.Builder;
+import lombok.Data;
 
-@Builder
-public record GeneratedImageDTO(byte[] image, int internalID, String externalID, String storageURL) {
+@Builder()
+@Data
+public class GeneratedImageDTO {
+
+    private byte[] image;
+    private int internalID;
+    private String externalID;
+    private String storageURL;
 }
