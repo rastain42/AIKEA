@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/AIKEA.iml" filepath="$PROJECT_DIR$/.idea/AIKEA.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Aikea-server/Aikea.iml" filepath="$PROJECT_DIR$/Aikea-server/Aikea.iml" />
     </modules>
   </component>
 </project>

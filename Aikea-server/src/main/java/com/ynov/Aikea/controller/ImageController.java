@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/generate-image")
+@CrossOrigin(origins = "http://localhost:8081")
 @RequiredArgsConstructor
 public class ImageController {
 
