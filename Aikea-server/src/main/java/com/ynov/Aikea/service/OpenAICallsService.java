@@ -5,8 +5,6 @@ import io.github.sashirestela.openai.common.content.ContentPart.ContentPartText;
 import io.github.sashirestela.openai.common.content.ContentPart.ContentPartImageUrl;
 
 import io.github.sashirestela.openai.common.content.ContentPart.ContentPartImageUrl.ImageUrl;
-import io.github.sashirestela.openai.domain.chat.Chat;
-import io.github.sashirestela.openai.domain.chat.ChatMessage;
 import io.github.sashirestela.openai.domain.chat.ChatMessage.UserMessage;
 import io.github.sashirestela.openai.domain.chat.ChatMessage.SystemMessage;
 import io.github.sashirestela.openai.domain.chat.ChatRequest;
@@ -41,9 +39,9 @@ public class OpenAICallsService {
                 .build();
         var futureImage = openAI.images().create(imageRequest);
         var imageResponse = futureImage.join();
-        imageResponse.stream().forEach(img -> System.out.println("\n" + img.getUrl()));
+        imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
 
-        return imageResponse.get(0).getUrl() ;
+        return imageResponse.getFirst().getUrl() ;
     }
 
     public String generateWithDalle(ImageRequest imageRequest) throws Exception {
@@ -54,8 +52,8 @@ public class OpenAICallsService {
         try {
             var futureImage = openAI.images().create(imageRequest);
             var imageResponse = futureImage.join();
-            imageResponse.stream().forEach(img -> System.out.println("\n" + img.getUrl()));
-            return imageResponse.get(0).getUrl();
+            imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
+            return imageResponse.getFirst().getUrl();
         } catch (CompletionException e) {
             System.err.println("Request failed:");
             if (e.getCause() != null) {
