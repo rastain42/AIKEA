@@ -1,19 +1,53 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, Text, View } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Alert, Text, View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const { login } = useAuth();
 
     const handleLogin = async () => {
-        const success = await login(username, password);
-        if (success) {
-            router.replace('/(tabs)/admin');
-        } else {
-            Alert.alert('Erreur', 'Identifiants incorrects');
+        if (!username || !password) {
+            Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const response = await axios.post('http://votre-api-url/api/login', {
+                username,
+                password
+            });
+
+            if (response.data && response.data.token) {
+                // Stocker le token de manière sécurisée
+                await SecureStore.setItemAsync('auth_token', response.data.token);
+                // Stocker le nom d'utilisateur
+                await AsyncStorage.setItem('@username', response.data.username || username);
+                await AsyncStorage.setItem('@auth_status', 'true');
+
+                // Mettre à jour le contexte d'authentification
+                login(username, password);
+
+                // Redirection
+                router.replace('/(tabs)/admin');
+            } else {
+                Alert.alert('Erreur', 'Problème lors de l\'authentification');
+            }
+        } catch (error) {
+            console.error('Erreur de connexion:', error);
+            Alert.alert(
+                'Erreur de connexion',
+                'Identifiants incorrects ou problème de serveur'
+            );
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -27,6 +61,7 @@ export default function LoginScreen() {
                 value={username}
                 onChangeText={setUsername}
                 autoCapitalize="none"
+                editable={!loading}
             />
 
             <TextInput
@@ -35,13 +70,19 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
+                editable={!loading}
             />
 
             <TouchableOpacity
-                style={styles.loginButton}
+                style={[styles.loginButton, loading && styles.disabledButton]}
                 onPress={handleLogin}
+                disabled={loading}
             >
-                <Text style={styles.buttonText}>Se connecter</Text>
+                {loading ? (
+                    <ActivityIndicator color="white" />
+                ) : (
+                    <Text style={styles.buttonText}>Se connecter</Text>
+                )}
             </TouchableOpacity>
         </View>
     );
@@ -74,6 +115,9 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 5,
         alignItems: 'center',
+    },
+    disabledButton: {
+        backgroundColor: '#87CEEB',
     },
     buttonText: {
         color: 'white',
