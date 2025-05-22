@@ -14,6 +14,8 @@ import io.github.sashirestela.openai.domain.image.Size;
 import io.github.sashirestela.openai.support.Base64Util;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 
@@ -110,6 +112,29 @@ public class OpenAICallsService {
                                 ContentPartText.of(prompt),
                                 ContentPartImageUrl.of(ImageUrl.of(
                                         Base64Util.encode(imagePath, Base64Util.MediaType.IMAGE)))))))
+                .temperature(0.0)
+                .maxCompletionTokens(500)
+                .build();
+        var futureChat = openAI.chatCompletions().create(chatRequest);
+        var chatResponse = futureChat.join();
+
+        return chatResponse.firstContent();
+    }
+
+    public String generateWithChatGPTFromLocalImageRaw(String prompt, byte[] imageBytes, String context) {
+
+        // Encode the image bytes to Base64
+        String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+        var chatRequest = ChatRequest.builder()
+                .model("gpt-4o-mini")
+                .messages(List.of(
+                        UserMessage.of(List.of(
+                                ContentPartText.of(context),
+                                ContentPartText.of(prompt),
+                                ContentPartImageUrl.of(
+                                        ImageUrl.of(base64Image)
+                                )))))
                 .temperature(0.0)
                 .maxCompletionTokens(500)
                 .build();

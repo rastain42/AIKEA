@@ -20,10 +20,3 @@ CREATE TABLE IF NOT exists users_roles (
     FOREIGN KEY (roles_id) REFERENCES roles(id),
     PRIMARY KEY (users_id, roles_id)
 );
-
-# Le nom des roles doit commencer par ROLE_ en spring security
-INSERT INTO roles (name) VALUES
-('ROLE_ADMIN'),
-('ROLE_USER'),
-('ROLE_TESTER')
-;

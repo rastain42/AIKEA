@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.ynov.Aikea.atools.CloudinaryEnum.PUBLIC_ID;
 import static com.ynov.Aikea.atools.CloudinaryEnum.SECURE_URL;
@@ -38,10 +39,13 @@ public class ImageUploadCloudinaryService implements ImageUploadService {
                     )
             );
 
+            String secureUrl = (String) uploadResult.get(SECURE_URL.value);
+            String publicId = (String) uploadResult.get(PUBLIC_ID.value);
+
             return UploadedImageDTO
                     .builder()
-                    .URL(SECURE_URL.value)
-                    .ID(PUBLIC_ID.value)
+                    .url(secureUrl)
+                    .id(publicId)
                     .build() ;
 
         } catch (IOException e) {

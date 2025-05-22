@@ -1,12 +1,10 @@
 package com.ynov.Aikea.service;
 
-import com.ynov.Aikea.atools.ImageProviderEnum;
 import com.ynov.Aikea.atools.QualityEnum;
 import com.ynov.Aikea.dto.GeneratedImageDTO;
 import com.ynov.Aikea.dto.UploadedImageDTO;
 import com.ynov.Aikea.entity.RecordedImage;
 import com.ynov.Aikea.repository.RecordedImagesRepository;
-import io.github.sashirestela.openai.domain.image.Image;
 import io.github.sashirestela.openai.domain.image.ImageRequest;
 import io.github.sashirestela.openai.domain.image.ImageResponseFormat;
 import io.github.sashirestela.openai.domain.image.Size;
@@ -21,11 +19,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +43,7 @@ public class ImageGenerationService {
         }
 
         // Enregistrer l'image dans la base de données
-        RecordedImage recordedImage = saveImage(prompt, getImageFromDalle(prompt, quality));
+        RecordedImage recordedImage = saveImage(prompt, content);
 
         // Enregistrer l'image sur le disque
         saveOnComputer(prompt, content);
@@ -107,7 +103,7 @@ public class ImageGenerationService {
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(imageType);
 
-                return imageResponse.getBody() ;
+                return imageResponse.getBody();
             } catch (Exception e) {
                 e.printStackTrace();
                 throw e ;
@@ -123,7 +119,7 @@ public class ImageGenerationService {
         String fileName = generateFileNameFromPrompt(prompt, 100) ;
         UploadedImageDTO uploaderValue = imageUploadCloudinaryService.uploadImage(content) ;
 
-        if(uploaderValue.URL() == null || uploaderValue.ID() == null) {
+        if(uploaderValue.url() == null || uploaderValue.id() == null) {
             throw new Exception("Error when uploading image to the cloud");
         }
 
@@ -131,8 +127,8 @@ public class ImageGenerationService {
         RecordedImage recordedImage = RecordedImage
                 .builder()
                 .imageName(fileName)
-                .cloudURI(uploaderValue.URL())
-                .cloudID(uploaderValue.ID())
+                .cloudURI(uploaderValue.url())
+                .cloudID(uploaderValue.id())
                 .prompt(prompt)
                 .build();
 

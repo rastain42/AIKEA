@@ -44,7 +44,7 @@ public class ImageController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_PNG);
-            return ResponseEntity.ok().headers(headers).body(dto.image());
+            return ResponseEntity.ok().headers(headers).body(dto.getImage());
 
         } catch (Exception e) {
             e.printStackTrace();
