@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, Text, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, Alert, Text, View, ActivityIndicator, Platform } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthProvider';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
@@ -20,15 +20,20 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            const response = await axios.post('http://votre-api-url/api/login', {
+            const response = await axios.post('http://localhost:8080/api/login', {
                 username,
                 password
             });
 
             if (response.data && response.data.token) {
+
                 // Stocker le token de manière sécurisée
-                await SecureStore.setItemAsync('auth_token', response.data.token);
-                // Stocker le nom d'utilisateur
+                if (Platform.OS === 'web') {
+                    localStorage.setItem('token', response.data.token);
+                } else {
+                    await SecureStore.setItemAsync('token', response.data.token);
+                }
+
                 await AsyncStorage.setItem('@username', response.data.username || username);
                 await AsyncStorage.setItem('@auth_status', 'true');
 
@@ -48,6 +53,7 @@ export default function LoginScreen() {
             );
         } finally {
             setLoading(false);
+
         }
     };
 

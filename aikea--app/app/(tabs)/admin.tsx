@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, FlatList, TouchableOpacity, TextInput, Image, Alert, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useAuth } from '@/context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthProvider';
 
 interface GeneratedImage {
     id: string;
