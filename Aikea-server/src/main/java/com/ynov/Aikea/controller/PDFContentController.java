@@ -27,4 +27,16 @@ public class PDFContentController {
             return ResponseEntity.badRequest().body(null);
         }
     }
+
+    @PostMapping("/create")
+    public ResponseEntity<String> createPDF(@RequestBody ImageGenerationRequest imageGenerationRequest) {
+        try {
+            PDFContentDTO pdfContent = pdfContentService.generatePDFContent(imageGenerationRequest);
+            String pdfPath = pdfContentService.createPDF(pdfContent);
+            return ResponseEntity.ok(pdfPath);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(null);
+        }
+    }
 }
