@@ -26,21 +26,12 @@ export default function LoginScreen() {
             });
 
             if (response.data && response.data.token) {
-
-                // Stocker le token de manière sécurisée
-                if (Platform.OS === 'web') {
-                    localStorage.setItem('token', response.data.token);
-                } else {
-                    await SecureStore.setItemAsync('token', response.data.token);
-                }
-
+                await AsyncStorage.setItem('token', response.data.token);
                 await AsyncStorage.setItem('@username', response.data.username || username);
                 await AsyncStorage.setItem('@auth_status', 'true');
 
-                // Mettre à jour le contexte d'authentification
                 login(username, password);
 
-                // Redirection
                 router.replace('/(tabs)/admin');
             } else {
                 Alert.alert('Erreur', 'Problème lors de l\'authentification');

@@ -9,8 +9,12 @@ import io.github.sashirestela.openai.domain.image.ImageRequest;
 import io.github.sashirestela.openai.domain.image.ImageResponseFormat;
 import io.github.sashirestela.openai.domain.image.Size;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -32,9 +36,23 @@ public class ImageGenerationService {
 
     private final MediaType imageType = MediaType.IMAGE_PNG;
 
+    private String basePath;
+    private final ResourceLoader resourceLoader;
+
+    @PostConstruct
+    public void init() {
+        try {
+            Resource resource = resourceLoader.getResource("classpath:static/images");
+            this.basePath = resource.getFile().getAbsolutePath();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to resolve image directory", e);
+        }
+    }
+
     public GeneratedImageDTO generateAndSaveImage(String prompt, QualityEnum quality) throws Exception {
         // Obtenir l'image de DALL-E sous forme de tableau d'octets
-        byte[] content = getImageFromDalle(prompt, quality);
+        String imageUrl= getImageUrlFromDalle(prompt, quality);
+        byte[] content = getImageFromUrl(imageUrl);
 
         // Vérifier que l'image a bien été obtenue
         if (content == null || content.length == 0) {
@@ -47,17 +65,18 @@ public class ImageGenerationService {
         // Enregistrer l'image sur le disque
         saveOnComputer(prompt, content);
 
+
         return GeneratedImageDTO
                 .builder()
                 .image(content)
                 .internalID(recordedImage.getId())
                 .externalID(recordedImage.getCloudID())
                 .storageURL(recordedImage.getCloudURI())
+                .url(imageUrl)
                 .build();
     }
 
-
-    public byte[] getImageFromDalle(String prompt, QualityEnum quality) throws Exception {
+    public String getImageUrlFromDalle(String prompt, QualityEnum quality) throws Exception {
         ImageRequest imageRequest = null;
 
         if(quality == QualityEnum.LOW) {
@@ -88,8 +107,17 @@ public class ImageGenerationService {
                     .model("dall-e-3")
                     .build() ;
         }
+try {
+    return openAICallsService.generateWithDalle(imageRequest);
 
-        String imageUrl = openAICallsService.generateWithDalle(imageRequest);
+}catch (Exception e) {
+    throw new Exception("No URL sent by OpenAI"+e.getMessage()) ;
+
+}
+
+
+    }
+    public byte[] getImageFromUrl(String imageUrl) throws Exception {
 
         if (imageUrl != null) {
             try {
@@ -210,7 +238,6 @@ public class ImageGenerationService {
 
     public void saveOnComputer(String prompt, byte[] imageBytes) throws IOException {
         // Spécifiez le chemin où vous souhaitez sauvegarder l'image
-        String basePath = "src/main/resources/static/images";
         String filename = generateFileNameFromPrompt(prompt, 50);
 
         if (filename == null || filename.isEmpty()) {

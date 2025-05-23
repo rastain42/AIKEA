@@ -11,4 +11,5 @@ public class GeneratedImageDTO {
     private int internalID;
     private String externalID;
     private String storageURL;
+    private String url;
 }

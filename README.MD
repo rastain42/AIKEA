@@ -62,3 +62,7 @@ pour se logger :
 
 - username : admin
 - password : admin123
+
+# TODO
+
+- git ignore les fichiers générés
