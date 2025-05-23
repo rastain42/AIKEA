@@ -23,6 +23,32 @@ CREATE TABLE IF NOT EXISTS users_roles (
     PRIMARY KEY (users_id, roles_id)
 );
 
+# Table des uploads pour le nouveau service d'upload
+CREATE TABLE IF NOT EXISTS uploads (
+                                       id BIGINT NOT NULL AUTO_INCREMENT,
+                                       file_name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    file_path VARCHAR(1000) NOT NULL,
+    mime_type VARCHAR(100) NOT NULL,
+    file_size BIGINT NOT NULL,
+    upload_date DATETIME NOT NULL,
+    description TEXT,
+    is_public BOOLEAN NOT NULL DEFAULT TRUE,
+    download_count INT NOT NULL DEFAULT 0,
+    uploader_id BIGINT,
+    uploader_name VARCHAR(255),
+    id_externe VARCHAR(255),
+    tag1 VARCHAR(50),
+    tag2 VARCHAR(50),
+    tag3 VARCHAR(50),
+    PRIMARY KEY (id),
+    INDEX idx_file_name (file_name),
+    INDEX idx_upload_date (upload_date),
+    INDEX idx_is_public (is_public),
+    INDEX idx_uploader_id (uploader_id),
+    INDEX idx_tags (tag1, tag2, tag3)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 # Le nom des roles doit commencer par ROLE_ en spring security
 INSERT INTO roles (name) VALUES
 ('ROLE_ADMIN');
