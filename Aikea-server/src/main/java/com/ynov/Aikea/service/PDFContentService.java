@@ -41,9 +41,23 @@ public class PDFContentService {
     public void init() {
         try {
             Resource resource = resourceLoader.getResource("classpath:pdf");
-            this.basePath = resource.getFile().getAbsolutePath();
+            if (resource.exists()) {
+                this.basePath = resource.getFile().getAbsolutePath();
+            } else {
+                // Create a temporary directory if classpath resource doesn't exist
+                Path tempDir = Files.createTempDirectory("aikea-pdf");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Created temporary PDF directory: " + this.basePath);
+            }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to resolve pdf directory", e);
+            // Fallback to system temp directory
+            try {
+                Path tempDir = Files.createTempDirectory("aikea-pdf");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Using fallback temporary PDF directory: " + this.basePath);
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to resolve or create PDF directory", ex);
+            }
         }
     }
 
@@ -51,7 +65,11 @@ public class PDFContentService {
 
     public PDFContentDTO generatePDFContent(ImageGenerationRequest imageGenerationRequest) throws Exception {
 
-        GeneratedImageDTO generatedImage = imageGenerationService.generateAndSaveImage(imageGenerationRequest.getPrompt(), QualityEnum.valueOf(imageGenerationRequest.getQuality()));
+        GeneratedImageDTO generatedImage = imageGenerationService.generateAndSaveImage(
+                imageGenerationRequest.getPrompt(), QualityEnum.valueOf(
+                        imageGenerationRequest.getQuality().toUpperCase()
+                )
+        );
         GeneratedTextDTO generatedText = textGenerationService.generateTextFromImageUrl(generatedImage.getUrl());
 
         PDFContentDTO pdfContent = new PDFContentDTO();

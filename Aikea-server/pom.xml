@@ -21,6 +21,7 @@
 		<spring-cloud.version>2023.0.0</spring-cloud.version>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
+		<lombok.version>1.18.34</lombok.version>
 	</properties>
 
 	<dependencyManagement>
@@ -162,6 +163,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
 			<optional>true</optional>
 		</dependency>
 		<dependency>
@@ -232,8 +234,34 @@
 					<nonFilteredFileExtensions>
 						<nonFilteredFileExtension>properties</nonFilteredFileExtension>
 					</nonFilteredFileExtensions>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
+			</configuration>
+		</plugin>
+		<plugin>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-maven-plugin</artifactId>
+			<version>9.22.3</version>
+			<configuration>
+				<url>jdbc:mysql://localhost:3306/javadb</url>
+				<user>javauser</user>
+				<password>javapass</password>
+				<locations>
+					<location>classpath:db/migration</location>
+				</locations>
+				<baselineOnMigrate>true</baselineOnMigrate>
+			</configuration>
+			<dependencies>
+				<dependency>
+					<groupId>com.mysql</groupId>
+					<artifactId>mysql-connector-j</artifactId>
+					<version>8.2.0</version>
+				</dependency>
+				<dependency>
+					<groupId>org.flywaydb</groupId>
+					<artifactId>flyway-mysql</artifactId>
+					<version>9.22.3</version>
+				</dependency>
+			</dependencies>
+		</plugin>
+	</plugins>
+</build>
 </project>
