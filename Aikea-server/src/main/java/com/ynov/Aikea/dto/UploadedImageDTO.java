@@ -1,7 +1,13 @@
 package com.ynov.Aikea.dto;
 
 import lombok.Builder;
+import lombok.Data;
 
+@Data
 @Builder
-public record UploadedImageDTO(String url, String id) {
+public class UploadedImageDTO {
+    private String url;
+    private String id;
+    private String idExterne;
+
 }
