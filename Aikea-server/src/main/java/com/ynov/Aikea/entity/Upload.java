@@ -64,6 +64,7 @@ public class Upload {
     private String description;
 
     @Column(name = "download_count", nullable = false)
+    @Builder.Default
     private Integer downloadCount = 0;
 
     @PrePersist

@@ -43,9 +43,23 @@ public class ImageGenerationService {
     public void init() {
         try {
             Resource resource = resourceLoader.getResource("classpath:static/images");
-            this.basePath = resource.getFile().getAbsolutePath();
+            if (resource.exists()) {
+                this.basePath = resource.getFile().getAbsolutePath();
+            } else {
+                // Create a temporary directory if classpath resource doesn't exist
+                Path tempDir = Files.createTempDirectory("aikea-images");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Created temporary image directory: " + this.basePath);
+            }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to resolve image directory", e);
+            // Fallback to system temp directory
+            try {
+                Path tempDir = Files.createTempDirectory("aikea-images");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Using fallback temporary image directory: " + this.basePath);
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to resolve or create image directory", ex);
+            }
         }
     }
 
