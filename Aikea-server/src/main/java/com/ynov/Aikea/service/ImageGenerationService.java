@@ -12,6 +12,7 @@ import io.github.sashirestela.openai.domain.image.Size;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -26,6 +27,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ImageGenerationService {
@@ -35,6 +37,7 @@ public class ImageGenerationService {
     private final RecordedImagesRepository recordedImagesRepository;
 
     private final MediaType imageType = MediaType.IMAGE_PNG;
+    private final ImageUploadCloudinaryService imageUploadCloudinaryService;
 
     private String basePath;
     private final ResourceLoader resourceLoader;
@@ -43,9 +46,23 @@ public class ImageGenerationService {
     public void init() {
         try {
             Resource resource = resourceLoader.getResource("classpath:static/images");
-            this.basePath = resource.getFile().getAbsolutePath();
+            if (resource.exists()) {
+                this.basePath = resource.getFile().getAbsolutePath();
+            } else {
+                // Create a temporary directory if classpath resource doesn't exist
+                Path tempDir = Files.createTempDirectory("aikea-images");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Created temporary image directory: " + this.basePath);
+            }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to resolve image directory", e);
+            // Fallback to system temp directory
+            try {
+                Path tempDir = Files.createTempDirectory("aikea-images");
+                this.basePath = tempDir.toAbsolutePath().toString();
+                System.out.println("Using fallback temporary image directory: " + this.basePath);
+            } catch (IOException ex) {
+                throw new RuntimeException("Failed to resolve or create image directory", ex);
+            }
         }
     }
 
@@ -65,6 +82,10 @@ public class ImageGenerationService {
         // Enregistrer l'image sur le disque
         saveOnComputer(prompt, content);
 
+        // Enregistrer l'image dans le bucket Cloudinary
+        // Note: Assuming uploadService.saveFile returns an UploadedImageDTO with the necessary details
+        imageUploadCloudinaryService.uploadImage(content);
+        System.out.println("Uploaded image from DALL-E to Cloudinary: " + recordedImage);
 
         return GeneratedImageDTO
                 .builder()
@@ -107,16 +128,16 @@ public class ImageGenerationService {
                     .model("dall-e-3")
                     .build() ;
         }
-try {
-    return openAICallsService.generateWithDalle(imageRequest);
+        try {
+            assert imageRequest != null;
+            return openAICallsService.generateWithDalle(imageRequest);
 
-}catch (Exception e) {
-    throw new Exception("No URL sent by OpenAI"+e.getMessage()) ;
+        }catch (Exception e) {
+            throw new Exception("No URL sent by OpenAI"+e.getMessage()) ;
 
-}
-
-
+        }
     }
+
     public byte[] getImageFromUrl(String imageUrl) throws Exception {
 
         if (imageUrl != null) {
