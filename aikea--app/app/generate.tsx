@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { v4 as uuidv4 } from 'uuid';
+import { pdfService } from '@/services/PdfService';
 
 export default function GenerateScreen() {
     const [prompt, setPrompt] = useState('');
@@ -13,15 +14,14 @@ export default function GenerateScreen() {
     const [generatedPdf, setGeneratedPdf] = useState<string | null>(null);
     const [pdfUri, setPdfUri] = useState<string | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); const [uploadedToBucket, setUploadedToBucket] = useState<{ url: string, idExterne: string } | null>(null);
 
     const generatePdf = async () => {
         if (!prompt.trim()) {
             Alert.alert('Erreur', 'Veuillez saisir un prompt');
             return;
-        }
-
-        setLoading(true);
+        } setLoading(true);
+        console.log('🚀 Début génération PDF avec prompt:', prompt, 'qualité:', quality);
         try {
             // Appel à l'API pour générer le PDF
             const response = await fetch('http://localhost:8080/generate-pdf/create', {
@@ -37,15 +37,15 @@ export default function GenerateScreen() {
 
             if (!response.ok) {
                 throw new Error('Erreur lors de la génération du PDF');
-            }
-
-            // Récupérer le PDF en blob
+            }            // Récupérer le PDF en blob
             const blob = await response.blob();
+            console.log('📄 PDF blob créé:', blob.size, 'bytes');
             setPdfBlob(blob);
 
             if (Platform.OS === 'web') {
                 // Pour le web, créer un URL Object
                 const url = URL.createObjectURL(blob);
+                console.log('🌐 URL créée pour le web:', url);
                 setPdfUri(url);
 
                 // Convertir en base64 pour la sauvegarde
@@ -53,6 +53,7 @@ export default function GenerateScreen() {
                 reader.readAsDataURL(blob);
                 reader.onloadend = () => {
                     const base64data = reader.result?.toString().split(',')[1] || '';
+                    console.log('📋 Base64 généré:', base64data.length, 'caractères');
                     setGeneratedPdf(base64data);
                 };
             } else {
@@ -76,9 +77,10 @@ export default function GenerateScreen() {
                 };
             }
         } catch (error) {
-            console.error('Erreur:', error);
+            console.error('❌ Erreur génération PDF:', error);
             Alert.alert('Erreur', 'Impossible de générer le PDF');
         } finally {
+            console.log('✅ Fin génération PDF (loading=false)');
             setLoading(false);
         }
     };
@@ -178,6 +180,68 @@ export default function GenerateScreen() {
         }
     };
 
+    // Fonction pour uploader le PDF généré vers le bucket
+    const uploadGeneratedPdfToBucket = async () => {
+        if (!pdfBlob || !prompt.trim()) {
+            Alert.alert('Erreur', 'Aucun PDF à uploader');
+            return;
+        }
+
+        try {
+            console.log('📤 Upload du PDF généré vers le bucket...');
+
+            // Vérifier la taille du fichier
+            const maxSize = 45 * 1024 * 1024; // 45MB (un peu moins que la limite serveur)
+            if (pdfBlob.size > maxSize) {
+                Alert.alert(
+                    'Fichier trop volumineux',
+                    `Le PDF généré est trop volumineux (${(pdfBlob.size / (1024 * 1024)).toFixed(1)}MB). Essayez avec une qualité plus basse.`
+                );
+                return;
+            }
+
+            // Créer un File à partir du Blob
+            const fileName = `generated_${Date.now()}_${prompt.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+            const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+            // Générer un ID unique pour ce PDF
+            const idExterne = uuidv4();
+
+            console.log(`📄 Taille du fichier: ${(pdfBlob.size / (1024 * 1024)).toFixed(2)}MB`);
+
+            // Uploader via le service PdfService qui utilise l'endpoint /student/upload
+            const result = await pdfService.uploadFileToAdmin(
+                file,
+                idExterne,
+                'generated', // tag1
+                quality.toLowerCase(), // tag2  
+                prompt.slice(0, 50) // tag3 - premier 50 caractères du prompt
+            );
+
+            console.log('✅ PDF uploadé vers le bucket:', result);
+            setUploadedToBucket(result);
+
+            Alert.alert(
+                'Succès',
+                'PDF généré et sauvegardé dans le système!\nVous pouvez maintenant le retrouver dans l\'onglet Admin.',
+                [
+                    { text: 'OK' },
+                    {
+                        text: 'Voir dans Admin',
+                        onPress: () => router.push('/(tabs)/admin')
+                    }
+                ]
+            );
+
+        } catch (error) {
+            console.error('❌ Erreur upload bucket:', error);
+            Alert.alert(
+                'Erreur d\'upload',
+                error instanceof Error ? error.message : 'Impossible d\'uploader le PDF vers le système'
+            );
+        }
+    };
+
     return (
         <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.container}>
@@ -213,11 +277,9 @@ export default function GenerateScreen() {
                     <Text style={styles.buttonText}>
                         {loading ? 'Génération en cours...' : 'Générer le PDF'}
                     </Text>
-                </TouchableOpacity>
+                </TouchableOpacity>                {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
 
-                {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
-
-                {generatedPdf && (
+                {pdfBlob && (
                     <View style={styles.pdfContainer}>
                         <Text style={styles.generatedTitle}>PDF généré:</Text>
                         <View style={styles.pdfPreview}>
@@ -244,6 +306,20 @@ export default function GenerateScreen() {
                             <Text style={styles.buttonText}>
                                 {Platform.OS === 'web' ? 'Télécharger le PDF' : 'Enregistrer le PDF'}
                             </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.button, styles.saveButton]}
+                            onPress={saveGeneratedPdf}
+                        >
+                            <Text style={styles.buttonText}>Sauvegarder le PDF</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.button, styles.uploadButton]}
+                            onPress={uploadGeneratedPdfToBucket}
+                        >
+                            <Text style={styles.buttonText}>Uploader vers le système</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -310,9 +386,11 @@ const styles = StyleSheet.create({
     },
     downloadButton: {
         backgroundColor: '#f39c12',
-    },
-    saveButton: {
+    }, saveButton: {
         backgroundColor: '#2ecc71',
+    },
+    uploadButton: {
+        backgroundColor: '#9b59b6',
     },
     cancelButton: {
         backgroundColor: '#95a5a6',

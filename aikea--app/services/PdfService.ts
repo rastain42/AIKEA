@@ -8,18 +8,20 @@ export interface PdfDocument {
   uploadedAt: string;
   downloadUrl?: string;
   viewUrl?: string;
-  type: "pdf";
-  mimeType: "application/pdf";
+  url?: string; // ← Ajout de cette propriété
+  type: string;
+  mimeType: string;
   tags?: string[];
   description?: string;
 }
 
 export interface PdfStats {
-  totalPdfs: number;
-  totalSizeBytes: number;
-  totalSizeMB: number;
-  lastUpdated: string;
+  totalDocuments: number;
+  totalSize: number;
+  averageSize: number; // ← Ajout de cette propriété
   lastSync?: string;
+  documentsThisWeek?: number;
+  documentsThisMonth?: number;
 }
 
 export interface SyncResult {
@@ -204,22 +206,53 @@ class PdfService {
     }
   }
 
-  /**
-   * Obtenir les statistiques des PDFs
-   */
   async getStats(): Promise<PdfStats> {
-    const documents = await this.getLocalDocuments();
-    const lastSync = await AsyncStorage.getItem(this.SYNC_TIMESTAMP_KEY);
+    try {
+      console.log("📊 Calcul des statistiques...");
 
-    const totalSize = documents.reduce((sum, doc) => sum + doc.size, 0);
+      const documents = await this.getLocalDocuments();
+      const totalDocuments = documents.length;
+      const totalSize = documents.reduce(
+        (sum, doc) => sum + (doc.size || 0),
+        0
+      );
+      const averageSize = totalDocuments > 0 ? totalSize / totalDocuments : 0; // ← Calcul de la moyenne
 
-    return {
-      totalPdfs: documents.length,
-      totalSizeBytes: totalSize,
-      totalSizeMB: Math.round((totalSize / (1024 * 1024)) * 100) / 100,
-      lastUpdated: new Date().toISOString(),
-      lastSync: lastSync || undefined,
-    };
+      const lastSync = await AsyncStorage.getItem(this.SYNC_TIMESTAMP_KEY);
+
+      // Calcul des documents de cette semaine
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      const documentsThisWeek = documents.filter((doc) => {
+        const docDate = new Date(doc.uploadedAt);
+        return docDate >= oneWeekAgo;
+      }).length;
+
+      // Calcul des documents de ce mois
+      const oneMonthAgo = new Date();
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+      const documentsThisMonth = documents.filter((doc) => {
+        const docDate = new Date(doc.uploadedAt);
+        return docDate >= oneMonthAgo;
+      }).length;
+
+      const stats: PdfStats = {
+        totalDocuments,
+        totalSize,
+        averageSize, // ← Ajout de cette propriété
+        lastSync: lastSync || undefined,
+        documentsThisWeek,
+        documentsThisMonth,
+      };
+
+      console.log("✅ Statistiques calculées:", stats);
+      return stats;
+    } catch (error) {
+      console.error("❌ Erreur calcul statistiques:", error);
+      throw error;
+    }
   }
 
   /**
@@ -253,16 +286,22 @@ class PdfService {
   private async saveLocalDocuments(documents: PdfDocument[]): Promise<void> {
     await AsyncStorage.setItem(this.STORAGE_KEY, JSON.stringify(documents));
   }
-
   private async fetchRemoteDocuments(): Promise<PdfDocument[]> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/api/pdfs`, {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-      });
+      console.log("🔄 Fetching documents from backend...");
+
+      // Utiliser GET sans body (standard navigateur) - le backend ajoutera le body pour le bucket
+      const response = await fetch(
+        `${this.API_BASE_URL}/student/upload/search`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            // TODO: Ajouter le token d'authentification si nécessaire
+          },
+          // Pas de body côté frontend - le backend s'occupe d'ajouter le body pour le bucket
+        }
+      );
 
       if (!response.ok) {
         throw new Error(
@@ -271,9 +310,60 @@ class PdfService {
       }
 
       const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      console.log("📥 Raw API response:", data);
+
+      // Vérifier si la réponse indique un filtrage IP
+      if (Array.isArray(data) && data.length > 0) {
+        const firstItem = data[0];
+        if (firstItem.status === "ip_filtered" || firstItem.type === "info") {
+          console.warn(
+            "🚫 Backend détecté comme filtré par IP:",
+            firstItem.message
+          );
+          console.warn("💡 Solution suggérée:", firstItem.solution);
+
+          // Retourner une liste vide mais logguer le problème
+          // On pourrait aussi retourner un document d'information
+          return [];
+        }
+      }
+
+      // Transformer les données de l'API en format PdfDocument
+      const documents: PdfDocument[] = data.map((item: any) => ({
+        id: item.id.toString(),
+        name: item.name || item.fileName,
+        originalName: item.name,
+        size: item.size || 0,
+        uploadedAt: item.uploadedAt,
+        downloadUrl: item.downloadUrl,
+        viewUrl: item.viewUrl,
+        url: item.url,
+        type: "pdf",
+        mimeType: item.mimeType || "application/pdf",
+        tags: item.tags || [],
+        description: item.description,
+      }));
+
+      console.log(
+        `✅ Successfully fetched ${documents.length} documents from remote`
+      );
+      return documents;
     } catch (error) {
-      console.error("Erreur récupération distante:", error);
+      console.error("❌ Erreur récupération distante:", error);
+
+      // Si l'erreur contient "403", c'est probablement du filtrage IP
+      if (error instanceof Error && error.message.includes("403")) {
+        console.warn(
+          "🚫 Erreur 403 détectée - probablement du filtrage IP sur le bucket externe"
+        );
+        console.warn(
+          "💡 Le backend ne peut pas accéder au bucket, mais l'app peut fonctionner en local"
+        );
+
+        // Ne pas faire échouer complètement, retourner une liste vide
+        return [];
+      }
+
       throw error;
     }
   }
@@ -314,29 +404,38 @@ class PdfService {
 
     return { merged, stats };
   }
-
   private async uploadToRemoteApi(
     file: File | any,
     document: PdfDocument
   ): Promise<void> {
+    // Utiliser l'endpoint student/upload pour uploader les fichiers
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("name", document.name);
-    formData.append("id", document.id);
+    formData.append("idExterne", document.id);
+    formData.append("tag1", "pdf");
+    formData.append("tag2", "generated");
+    formData.append("tag3", document.name);
 
-    const response = await fetch(`${this.API_BASE_URL}/api/pdfs/upload`, {
+    const response = await fetch(`${this.API_BASE_URL}/student/upload`, {
       method: "POST",
       body: formData,
+      headers: {
+        // TODO: Ajouter le token d'authentification si nécessaire
+      },
     });
 
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.status}`);
     }
   }
-
   private async deleteFromRemoteApi(id: string): Promise<void> {
-    const response = await fetch(`${this.API_BASE_URL}/api/pdfs/${id}`, {
+    const response = await fetch(`${this.API_BASE_URL}/student/upload/${id}`, {
       method: "DELETE",
+      headers: {
+        Accept: "application/json",
+        // TODO: Ajouter le token d'authentification si nécessaire
+      },
+      // Pas de body côté frontend - le backend s'occupe d'ajouter le body pour le bucket
     });
 
     if (!response.ok) {
@@ -400,6 +499,57 @@ class PdfService {
     if (fileName.match(/\d{4}/)) tags.push("date"); // Contient une année
 
     return tags;
+  }
+  /**
+   * Uploader un fichier vers l'API student (réutilisation des routes existantes)
+   */
+  async uploadFileToAdmin(
+    file: File | any,
+    idExterne: string,
+    tag1?: string,
+    tag2?: string,
+    tag3?: string
+  ): Promise<{
+    idExterne: string;
+    url: string;
+    tag1: string;
+    tag2: string;
+    tag3: string;
+  }> {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("idExterne", idExterne);
+      if (tag1) formData.append("tag1", tag1);
+      if (tag2) formData.append("tag2", tag2);
+      if (tag3) formData.append("tag3", tag3);
+
+      const response = await fetch(`${this.API_BASE_URL}/student/upload`, {
+        method: "POST",
+        body: formData,
+        headers: {
+          // TODO: Ajouter le token d'authentification si nécessaire
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error(
+            `Fichier trop volumineux pour être uploadé. Taille maximale autorisée: 50MB`
+          );
+        }
+        throw new Error(
+          `Upload failed: ${response.status} - ${response.statusText}`
+        );
+      }
+
+      const result = await response.json();
+      console.log("✅ Fichier uploadé via student endpoint:", result);
+      return result;
+    } catch (error) {
+      console.error("❌ Erreur upload student:", error);
+      throw error;
+    }
   }
 }
 

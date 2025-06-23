@@ -1,70 +1,345 @@
-// hooks/usePdfService.ts
-import { useState, useEffect } from "react";
-import pdfService, { PdfDocument, SyncResult } from "../services/PdfService";
+import { useState, useEffect, useCallback } from "react";
+import { Alert } from "react-native";
+import {
+  pdfService,
+  PdfDocument,
+  SyncResult,
+  PdfStats,
+} from "@/services/PdfService";
 
-export const usePdfService = () => {
+export interface UsePdfServiceReturn {
+  // État
+  documents: PdfDocument[];
+  loading: boolean;
+  error: string | null;
+  refreshing: boolean;
+  searchResults: PdfDocument[];
+  stats: PdfStats | null;
+
+  // Actions
+  loadDocuments: (forceSync?: boolean) => Promise<void>;
+  syncDocuments: () => Promise<SyncResult | null>;
+  deleteDocument: (id: string) => Promise<boolean>;
+  searchDocuments: (query: string) => Promise<void>;
+  addDocument: (file: any) => Promise<PdfDocument | null>;
+  getStats: () => Promise<void>;
+  clearError: () => void;
+  refresh: () => Promise<void>;
+}
+
+export const usePdfService = (): UsePdfServiceReturn => {
+  // États
   const [documents, setDocuments] = useState<PdfDocument[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [searchResults, setSearchResults] = useState<PdfDocument[]>([]);
+  const [stats, setStats] = useState<PdfStats | null>(null);
 
-  const loadDocuments = async (forceSync = false) => {
+  /**
+   * Charge les documents
+   */
+  const loadDocuments = useCallback(async (forceSync = false) => {
     try {
+      console.log("🔄 Hook: Chargement des documents...", { forceSync });
       setLoading(true);
       setError(null);
+
       const docs = await pdfService.getAllDocuments(forceSync);
+
+      console.log("✅ Hook: Documents récupérés:", docs.length);
       setDocuments(docs);
+      setSearchResults(docs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur de chargement");
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur lors du chargement";
+      console.error("❌ Hook: Erreur chargement:", err);
+      setError(errorMessage);
+
+      // Afficher une alerte pour informer l'utilisateur
+      Alert.alert("Erreur de chargement", errorMessage, [{ text: "OK" }]);
     } finally {
       setLoading(false);
     }
-  };
-
-  const syncDocuments = async (): Promise<SyncResult | null> => {
-    try {
-      setSyncing(true);
-      setError(null);
-      const result = await pdfService.forceSyncWithRemote();
-      await loadDocuments(); // Recharger après sync
-      return result;
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Erreur de synchronisation"
-      );
-      return null;
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const deleteDocument = async (id: string) => {
-    try {
-      const success = await pdfService.deleteDocument(id);
-      if (success) {
-        setDocuments((prev) => prev.filter((doc) => doc.id !== id));
-      }
-      return success;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur de suppression");
-      return false;
-    }
-  };
-
-  useEffect(() => {
-    loadDocuments();
   }, []);
 
+  /**
+   * Synchronise les documents avec le serveur
+   */
+  const syncDocuments = useCallback(async (): Promise<SyncResult | null> => {
+    try {
+      console.log("🔄 Hook: Synchronisation...");
+      setError(null);
+
+      const result = await pdfService.forceSyncWithRemote();
+
+      if (result.success) {
+        console.log("✅ Hook: Sync réussie:", result);
+        // Recharger les documents après la sync
+        await loadDocuments(false);
+
+        // Afficher un message de succès
+        Alert.alert(
+          "Synchronisation réussie",
+          `${result.newDocuments} nouveaux documents, ${result.updatedDocuments} mis à jour`,
+          [{ text: "OK" }]
+        );
+      } else {
+        throw new Error(
+          result.errors.join(", ") || "Erreur de synchronisation"
+        );
+      }
+
+      return result;
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Erreur de synchronisation";
+      console.error("❌ Hook: Erreur sync:", err);
+      setError(errorMessage);
+
+      Alert.alert("Erreur de synchronisation", errorMessage, [{ text: "OK" }]);
+
+      return null;
+    }
+  }, [loadDocuments]);
+
+  /**
+   * Supprime un document
+   */
+  const deleteDocument = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        console.log("🗑️ Hook: Suppression document:", id);
+        setError(null);
+
+        const documentToDelete = documents.find((doc) => doc.id === id);
+        if (!documentToDelete) {
+          throw new Error("Document non trouvé");
+        }
+
+        // Demander confirmation
+        return new Promise((resolve) => {
+          Alert.alert(
+            "Confirmer la suppression",
+            `Êtes-vous sûr de vouloir supprimer "${documentToDelete.name}" ?`,
+            [
+              {
+                text: "Annuler",
+                style: "cancel",
+                onPress: () => resolve(false),
+              },
+              {
+                text: "Supprimer",
+                style: "destructive",
+                onPress: async () => {
+                  try {
+                    const success = await pdfService.deleteDocument(id);
+
+                    if (success) {
+                      console.log("✅ Hook: Document supprimé avec succès");
+
+                      // Mettre à jour l'état local immédiatement
+                      setDocuments((prev) =>
+                        prev.filter((doc) => doc.id !== id)
+                      );
+                      setSearchResults((prev) =>
+                        prev.filter((doc) => doc.id !== id)
+                      );
+
+                      // Afficher un message de succès
+                      Alert.alert(
+                        "Document supprimé",
+                        `"${documentToDelete.name}" a été supprimé avec succès`,
+                        [{ text: "OK" }]
+                      );
+                    } else {
+                      throw new Error("Échec de la suppression");
+                    }
+
+                    resolve(success);
+                  } catch (deleteErr) {
+                    const errorMessage =
+                      deleteErr instanceof Error
+                        ? deleteErr.message
+                        : "Erreur lors de la suppression";
+                    console.error("❌ Hook: Erreur suppression:", deleteErr);
+                    setError(errorMessage);
+
+                    Alert.alert("Erreur de suppression", errorMessage, [
+                      { text: "OK" },
+                    ]);
+
+                    resolve(false);
+                  }
+                },
+              },
+            ]
+          );
+        });
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur lors de la suppression";
+        console.error("❌ Hook: Erreur suppression:", err);
+        setError(errorMessage);
+        return false;
+      }
+    },
+    [documents]
+  );
+
+  /**
+   * Recherche dans les documents
+   */
+  const searchDocuments = useCallback(
+    async (query: string) => {
+      try {
+        console.log("🔍 Hook: Recherche:", query);
+        setError(null);
+
+        if (!query.trim()) {
+          setSearchResults(documents);
+          return;
+        }
+
+        const results = await pdfService.searchDocuments(query);
+        console.log("✅ Hook: Résultats trouvés:", results.length);
+        setSearchResults(results);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur lors de la recherche";
+        console.error("❌ Hook: Erreur recherche:", err);
+        setError(errorMessage);
+        setSearchResults([]);
+      }
+    },
+    [documents]
+  );
+
+  /**
+   * Ajoute un nouveau document
+   */
+  const addDocument = useCallback(
+    async (file: any): Promise<PdfDocument | null> => {
+      try {
+        console.log("📄 Hook: Ajout document:", file?.name);
+        setError(null);
+        setLoading(true);
+
+        const newDocument = await pdfService.addDocument(file);
+        console.log("✅ Hook: Document ajouté:", newDocument.name);
+
+        // Mettre à jour l'état local
+        setDocuments((prev) => [newDocument, ...prev]);
+        setSearchResults((prev) => [newDocument, ...prev]);
+
+        // Afficher un message de succès
+        Alert.alert(
+          "Document ajouté",
+          `"${newDocument.name}" a été ajouté avec succès`,
+          [{ text: "OK" }]
+        );
+
+        return newDocument;
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Erreur lors de l'ajout";
+        console.error("❌ Hook: Erreur ajout:", err);
+        setError(errorMessage);
+
+        Alert.alert("Erreur d'ajout", errorMessage, [{ text: "OK" }]);
+
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  /**
+   * Récupère les statistiques
+   */
+  const getStats = useCallback(async () => {
+    try {
+      console.log("📊 Hook: Récupération des stats...");
+      setError(null);
+
+      const statistics = await pdfService.getStats();
+      console.log("✅ Hook: Stats récupérées:", statistics);
+      setStats(statistics);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : "Erreur lors de la récupération des statistiques";
+      console.error("❌ Hook: Erreur stats:", err);
+      setError(errorMessage);
+    }
+  }, []);
+
+  /**
+   * Actualise les données (pull-to-refresh)
+   */
+  const refresh = useCallback(async () => {
+    try {
+      console.log("🔄 Hook: Actualisation...");
+      setRefreshing(true);
+      setError(null);
+
+      await loadDocuments(true); // Force la synchronisation
+      await getStats(); // Met à jour les stats
+
+      console.log("✅ Hook: Actualisation terminée");
+    } catch (err) {
+      console.error("❌ Hook: Erreur actualisation:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [loadDocuments, getStats]);
+
+  /**
+   * Efface l'erreur
+   */
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
+  /**
+   * Charge les documents au montage du composant
+   */
+  useEffect(() => {
+    console.log("🚀 Hook: Initialisation usePdfService");
+    loadDocuments();
+  }, [loadDocuments]);
+
+  /**
+   * Met à jour les statistiques quand les documents changent
+   */
+  useEffect(() => {
+    if (documents.length > 0) {
+      getStats();
+    }
+  }, [documents.length, getStats]);
+
   return {
+    // État
     documents,
     loading,
-    syncing,
     error,
+    refreshing,
+    searchResults,
+    stats,
+
+    // Actions
     loadDocuments,
     syncDocuments,
     deleteDocument,
-    searchDocuments: pdfService.searchDocuments.bind(pdfService),
-    addDocument: pdfService.addDocument.bind(pdfService),
-    getStats: pdfService.getStats.bind(pdfService),
+    searchDocuments,
+    addDocument,
+    getStats,
+    clearError,
+    refresh,
   };
 };
+
+export default usePdfService;
