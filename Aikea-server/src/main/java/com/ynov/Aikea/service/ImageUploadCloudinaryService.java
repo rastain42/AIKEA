@@ -44,7 +44,9 @@ public class ImageUploadCloudinaryService implements ImageUploadService {
                     .builder()
                     .url(secureUrl)
                     .id(publicId)
+                    .idExterne(publicId)
                     .build() ;
+
 
         } catch (IOException e) {
             log.error("Error uploading image to Cloudinary", e);
@@ -60,6 +62,11 @@ public class ImageUploadCloudinaryService implements ImageUploadService {
             throw new RuntimeException("Failed to delete image", e);
         }
     }
+    @Override
+    public List<Map<String, String>> getAllImages() {
+        return getAllCloudinaryImages();
+    }
+
 
     public List<Map<String, String>> getAllCloudinaryImages() {
         try {
