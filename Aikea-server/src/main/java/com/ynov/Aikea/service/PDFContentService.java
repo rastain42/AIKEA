@@ -30,6 +30,7 @@ import java.util.regex.Pattern;
 public class PDFContentService {
 
     private final ResourceLoader resourceLoader;
+    private final ImageUploadCloudinaryService imageUploadCloudinaryService;
     private  String basePath;
     private final ImageGenerationService imageGenerationService;
     private final TextGenerationService textGenerationService;

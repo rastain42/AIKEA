@@ -1,7 +1,76 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
+
+// Configuration de l'URL de l'API
+const DEV_API_URL = Platform.select({
+    web: 'http://localhost:8080',
+    // Adresse IP locale pour le développement mobile
+    default: 'http://10.33.77.163:8080'
+});
+
+// En production, utilisez votre URL de production
+const PROD_API_URL = 'https://votre-api-production.com';
+
+// Utilisez DEV_API_URL en développement, PROD_API_URL en production
+const API_URL = __DEV__ ? DEV_API_URL : PROD_API_URL;
+
+// Configuration d'axios avec plus de détails
+axios.defaults.baseURL = DEV_API_URL;
+axios.defaults.timeout = 10000; // 10 secondes de timeout
+axios.defaults.headers.common['Accept'] = 'application/json';
+axios.defaults.headers.post['Content-Type'] = 'application/json';
+
+// Intercepteur pour les requêtes
+axios.interceptors.request.use(
+    (config) => {
+        console.log('Requête envoyée:', {
+            url: config.url,
+            method: config.method,
+            headers: config.headers,
+            data: config.data
+        });
+        return config;
+    },
+    (error) => {
+        console.error('Erreur de requête:', error);
+        return Promise.reject(error);
+    }
+);
+
+// Intercepteur pour les réponses
+axios.interceptors.response.use(
+    (response) => {
+        console.log('Réponse reçue:', {
+            status: response.status,
+            data: response.data
+        });
+        return response;
+    },
+    (error) => {
+        if (error.response) {
+            // La requête a été faite et le serveur a répondu avec un code d'état
+            console.error('Erreur de réponse:', {
+                status: error.response.status,
+                data: error.response.data,
+                headers: error.response.headers
+            });
+        } else if (error.request) {
+            // La requête a été faite mais aucune réponse n'a été reçue
+            console.error('Pas de réponse reçue:', {
+                request: error.request,
+                message: error.message,
+                code: error.code
+            });
+        } else {
+            // Une erreur s'est produite lors de la configuration de la requête
+            console.error('Erreur de configuration:', error.message);
+        }
+        return Promise.reject(error);
+    }
+);
 
 type AuthContextType = {
     isAuthenticated: boolean;
@@ -17,13 +86,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [username, setUsername] = useState<string | null>(null);
 
     useEffect(() => {
-        // Vérifier si l'utilisateur est déjà authentifié
         const checkAuth = async () => {
             try {
                 const isAuth = await AsyncStorage.getItem('@auth_status');
                 const storedUsername = await AsyncStorage.getItem('@username');
+                let token;
 
-                if (isAuth === 'true') {
+                if (Platform.OS === 'web') {
+                    token = localStorage.getItem('auth_token');
+                } else {
+                    token = await SecureStore.getItemAsync('auth_token');
+                }
+
+                if (isAuth === 'true' && token) {
                     setIsAuthenticated(true);
                     if (storedUsername) {
                         setUsername(storedUsername);
@@ -39,31 +114,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (username: string, password: string): Promise<boolean> => {
         try {
-            const response = await axios.post('http://localhost:8080/api/login', {
+            console.log('Tentative de connexion à:', `${DEV_API_URL}/api/login`);
+            console.log('Plateforme:', Platform.OS);
+            console.log('Configuration axios:', {
+                baseURL: axios.defaults.baseURL,
+                timeout: axios.defaults.timeout,
+                headers: axios.defaults.headers
+            });
+
+            const response = await axios.post('/api/login', {
                 username,
                 password
             });
 
             if (response.data && response.data.token) {
-                await SecureStore.setItemAsync('auth_token', response.data.token);
+                console.log('Connexion réussie, token reçu');
+                // Stockage du token selon la plateforme
+                if (Platform.OS === 'web') {
+                    localStorage.setItem('auth_token', response.data.token);
+                } else {
+                    await SecureStore.setItemAsync('auth_token', response.data.token);
+                }
+
+                // Stockage des informations d'authentification
                 await AsyncStorage.setItem('@auth_status', 'true');
                 await AsyncStorage.setItem('@username', username);
+
+                // Configuration du token pour les futures requêtes axios
+                axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+
                 setUsername(username);
                 setIsAuthenticated(true);
                 return true;
             }
             return false;
         } catch (error) {
-            console.error('Erreur lors de la connexion', error);
+            if (axios.isAxiosError(error)) {
+                console.error('Erreur de connexion détaillée:', {
+                    message: error.message,
+                    code: error.code,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    url: error.config?.url,
+                    baseURL: error.config?.baseURL,
+                    headers: error.config?.headers
+                });
+            } else {
+                console.error('Erreur lors de la connexion', error);
+            }
             return false;
         }
     };
 
     const logout = async (): Promise<void> => {
         try {
+            // Suppression des informations d'authentification
             await AsyncStorage.removeItem('@auth_status');
             await AsyncStorage.removeItem('@username');
-            await SecureStore.deleteItemAsync('auth_token');
+
+            // Suppression du token selon la plateforme
+            if (Platform.OS === 'web') {
+                localStorage.removeItem('auth_token');
+            } else {
+                await SecureStore.deleteItemAsync('auth_token');
+            }
+
+            // Suppression du token des headers axios
+            delete axios.defaults.headers.common['Authorization'];
+
             setIsAuthenticated(false);
             setUsername(null);
         } catch (error) {
