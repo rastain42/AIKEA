@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.List;
 
@@ -17,10 +18,8 @@ public class JwtTokenProvider {
     private static final Logger logger = LogManager.getLogger(JwtTokenProvider.class);
 
     private final SecretKey jwtSecretKey;
-
-
     public JwtTokenProvider(@Value("${jwt.secret}") String jwtSecret) {
-        this.jwtSecretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        this.jwtSecretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
     public String generateToken(String username, List<String> roles) {

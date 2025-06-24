@@ -286,10 +286,9 @@ public class StudentController {
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);
-                
-                if (connection.getResponseCode() == 200) {
+                  if (connection.getResponseCode() == 200) {
                     try (java.io.BufferedReader br = new java.io.BufferedReader(
-                            new java.io.InputStreamReader(connection.getInputStream()))) {
+                            new java.io.InputStreamReader(connection.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
                         StringBuilder result = new StringBuilder();
                         String line;
                         while ((line = br.readLine()) != null) {

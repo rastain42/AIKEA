@@ -154,8 +154,7 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
 
     /**
      * Suppression via curl direct (fallback)
-     */
-    private void deleteViaCurl(String fileName) {
+     */    private void deleteViaCurl(String fileName) {
         try {
             log.info("🗑️ Deleting file via curl: {}", fileName);
             
@@ -195,7 +194,7 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
             // Lire la sortie
             StringBuilder output = new StringBuilder();
             try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream()))) {
+                    new java.io.InputStreamReader(process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");
@@ -864,11 +863,10 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
             
             // Exécuter la commande
             Process process = processBuilder.start();
-            
-            // Lire la sortie
+              // Lire la sortie
             StringBuilder output = new StringBuilder();
             try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(process.getInputStream()))) {
+                    new java.io.InputStreamReader(process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     output.append(line).append("\n");
