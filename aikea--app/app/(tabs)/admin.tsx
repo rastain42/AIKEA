@@ -33,7 +33,6 @@ const PdfListScreen: React.FC = () => {
     error,
     refreshing,
     searchResults,
-    stats,
     loadDocuments,
     syncDocuments,
     deleteDocument,
@@ -148,12 +147,14 @@ const PdfListScreen: React.FC = () => {
   }, []);
 
   /**
-   * Formate la date
+   * Formate la date en soustrayant 2 heures pour le fuseau horaire local
    */
   const formatDate = useCallback((dateString: string): string => {
     try {
       const date = new Date(dateString);
-      return date.toLocaleDateString('fr-FR', {
+      // Soustraire 2 heures (2 * 60 * 60 * 1000 ms)
+      const adjustedDate = new Date(date.getTime() + 2 * 60 * 60 * 1000);
+      return adjustedDate.toLocaleDateString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -164,7 +165,6 @@ const PdfListScreen: React.FC = () => {
       return 'Date invalide';
     }
   }, []);
-
   /**
    * Rendu d'un élément de la liste
    */
@@ -180,33 +180,55 @@ const PdfListScreen: React.FC = () => {
         >
           <View style={styles.documentHeader}>
             <View style={styles.documentIcon}>
-              <Ionicons name="document-text" size={24} color="#e74c3c" />
+              <Ionicons name="home" size={24} color="#0051BA" />
             </View>
             <View style={styles.documentInfo}>
               <Text style={styles.documentName} numberOfLines={2}>
-                {item.name || item.originalName || 'Document sans nom'}
+                {item.name || item.originalName || 'Design sans nom'}
               </Text>
-
               <View style={styles.documentMeta}>
-                <Text style={styles.documentSize}>📄 {formatFileSize(item.size)}</Text>
-                <Text style={styles.documentDate}>🕒 {formatDate(item.uploadedAt)}</Text>
-              </View>
-
-              {/* Tags */}
+                <Text style={styles.documentDate}>� {formatDate(item.uploadedAt)}</Text>
+              </View>{' '}
+              {/* Tags pour le design d'intérieur */}
               {item.tags && item.tags.length > 0 && (
                 <View style={styles.tagsContainer}>
-                  {item.tags.slice(0, 3).map((tag, index) => (
-                    <View key={index} style={styles.tag}>
-                      <Text style={styles.tagText}>{tag}</Text>
-                    </View>
-                  ))}
+                  {item.tags.slice(0, 3).map((tag, index) => {
+                    // Déterminer le texte et le style du tag selon son type
+                    let displayText = tag;
+                    let isSpecialTag = false;
+
+                    if (tag === 'design-interieur') {
+                      displayText = '🎨 Design';
+                      isSpecialTag = true;
+                    } else if (tag === 'generated') {
+                      displayText = '🏠 Créé';
+                      isSpecialTag = true;
+                    } else if (['low', 'medium', 'high'].includes(tag.toLowerCase())) {
+                      displayText =
+                        tag === 'low'
+                          ? '📱 Standard'
+                          : tag === 'medium'
+                            ? '💻 HD'
+                            : tag === 'high'
+                              ? '🖥️ Ultra HD'
+                              : tag;
+                      isSpecialTag = true;
+                    }
+
+                    return (
+                      <View key={index} style={[styles.tag, isSpecialTag && styles.specialTag]}>
+                        <Text style={[styles.tagText, isSpecialTag && styles.specialTagText]}>
+                          {displayText}
+                        </Text>
+                      </View>
+                    );
+                  })}
                   {item.tags.length > 3 && (
                     <Text style={styles.moreTagsText}>+{item.tags.length - 3}</Text>
                   )}
                 </View>
               )}
-
-              {/* Description */}
+              {/* Description du design */}
               {item.description && (
                 <Text style={styles.documentDescription} numberOfLines={2}>
                   {item.description}
@@ -218,28 +240,27 @@ const PdfListScreen: React.FC = () => {
               onPress={() => setSelectedDocument(isSelected ? null : item.id)}
             >
               <Ionicons name={isSelected ? 'chevron-up' : 'chevron-down'} size={20} color="#666" />
-            </TouchableOpacity>{' '}
+            </TouchableOpacity>
           </View>
 
           {/* Actions (affichées quand sélectionné) */}
           {isSelected && (
             <View style={styles.documentActions}>
-              {' '}
               <TouchableOpacity
                 style={[styles.actionButton, styles.viewButton]}
                 onPress={() => {
-                  console.log('👁️ Bouton Voir cliqué pour:', item.name);
+                  console.log('👁️ Bouton Voir design cliqué pour:', item.name);
                   handleView(item);
                 }}
               >
                 <Ionicons name="eye" size={16} color="#fff" />
-                <Text style={styles.actionButtonText}>Voir</Text>
+                <Text style={styles.actionButtonText}>Voir Design</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.actionButton, styles.deleteButton]}
                 onPress={() => {
-                  console.log('🗑️ Bouton Supprimer cliqué pour:', item.name, 'ID:', item.id);
-                  handleDelete(item.id, item.name || item.originalName || 'Document');
+                  console.log('🗑️ Bouton Supprimer design cliqué pour:', item.name, 'ID:', item.id);
+                  handleDelete(item.id, item.name || item.originalName || 'Design');
                 }}
               >
                 <Ionicons name="trash" size={16} color="#fff" />
@@ -254,41 +275,14 @@ const PdfListScreen: React.FC = () => {
   );
 
   /**
-   * Rendu du header avec statistiques
-   */
-  const renderHeader = useCallback(() => {
-    if (!stats) return null;
-
-    return (
-      <View style={styles.statsContainer}>
-        <Text style={styles.statsTitle}>📊 Statistiques</Text>
-        <View style={styles.statsRow}>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{stats.totalDocuments}</Text>
-            <Text style={styles.statLabel}>Documents</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatFileSize(stats.totalSize)}</Text>
-            <Text style={styles.statLabel}>Taille totale</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Text style={styles.statValue}>{formatFileSize(stats.averageSize)}</Text>
-            <Text style={styles.statLabel}>Taille moyenne</Text>
-          </View>
-        </View>
-      </View>
-    );
-  }, [stats, formatFileSize]);
-
-  /**
    * Rendu du composant vide
    */
   const renderEmpty = useCallback(
     () => (
       <View style={styles.emptyContainer}>
-        <Ionicons name="document-text-outline" size={64} color="#ccc" />
+        <Ionicons name="home-outline" size={64} color="#ccc" />
         <Text style={styles.emptyText}>
-          {searchQuery ? 'Aucun document trouvé pour votre recherche' : 'Aucun document disponible'}
+          {searchQuery ? 'Aucun design trouvé pour votre recherche' : 'Aucun design disponible'}
         </Text>
         {!searchQuery && (
           <TouchableOpacity style={styles.syncButton} onPress={() => loadDocuments(true)}>
@@ -305,19 +299,24 @@ const PdfListScreen: React.FC = () => {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Chargement des documents...</Text>
+        <Text style={styles.loadingText}>Chargement de vos designs...</Text>
       </View>
     );
   }
   return (
     <View style={styles.container}>
+      {/* Titre de la section */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>🏠 Mes Créations AIKEA</Text>
+        <Text style={styles.headerSubtitle}>Gérez vos designs d'intérieur</Text>
+      </View>
       {/* Barre de recherche et actions */}
       <View style={styles.searchContainer}>
         <View style={styles.searchInputContainer}>
-          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
+          <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />{' '}
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un document..."
+            placeholder="Rechercher un design..."
             value={searchQuery}
             onChangeText={handleSearch}
             clearButtonMode="while-editing"
@@ -330,10 +329,10 @@ const PdfListScreen: React.FC = () => {
       </View>
       {/* Aide rapide */}
       <View style={styles.helpContainer}>
-        <Ionicons name="information-circle" size={16} color="#3498db" />
+        <Ionicons name="information-circle" size={16} color="#3498db" />{' '}
         <Text style={styles.helpText}>
-          Cliquez sur sync pour synchroniser, ou développez un document pour le voir ou le
-          supprimer. Utilisez l&apos;onglet principal pour générer de nouveaux PDFs.
+          Synchronisez vos designs, développez un document pour le visualiser ou le supprimer. Créez
+          de nouveaux designs depuis l&apos;onglet principal.
         </Text>
       </View>
       {/* Message d'erreur */}
@@ -350,7 +349,6 @@ const PdfListScreen: React.FC = () => {
         data={searchResults}
         keyExtractor={item => item.id}
         renderItem={renderDocument}
-        ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         contentContainerStyle={styles.listContainer}
@@ -461,12 +459,13 @@ const styles = StyleSheet.create({
   },
   helpContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: '#f0f8ff',
     marginHorizontal: 16,
-    marginTop: 8,
+    marginVertical: 20,
     borderRadius: 8,
     borderLeftWidth: 3,
     borderLeftColor: '#3498db',
@@ -599,11 +598,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#1976d2',
     fontWeight: '500',
+  }, // Styles spécifiques pour les tags AIKEA
+  specialTag: {
+    backgroundColor: '#fff3cd', // Jaune IKEA clair
+    borderColor: '#FFDB00',
+    borderWidth: 1,
+  },
+  specialTagText: {
+    color: '#856404',
+    fontWeight: '600' as const,
   },
   moreTagsText: {
     fontSize: 10,
     color: '#666',
-    fontStyle: 'italic',
+    fontStyle: 'italic' as const,
+  },
+  imagePreviewContainer: {
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#e8f5e8',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#28a745',
+  },
+  imagePreviewText: {
+    fontSize: 10,
+    color: '#28a745',
+    fontWeight: '500' as const,
   },
   documentDescription: {
     fontSize: 12,
@@ -739,6 +761,26 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold' as const,
+    color: '#0051BA', // Bleu IKEA
+    textAlign: 'center' as const,
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center' as const,
   },
 });
 

@@ -22,18 +22,19 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
       }}
     >
+      {' '}
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          title: 'Créateur',
+          tabBarIcon: ({ color }) => <TabBarIcon name="paint-brush" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="login"
+        name="admin"
         options={{
-          title: 'Administration',
-          tabBarIcon: ({ color }) => <TabBarIcon name="gear" color={color} />,
+          title: 'Mes Créations',
+          tabBarIcon: ({ color }) => <TabBarIcon name="folder" color={color} />,
           // Masquer l'onglet admin si l'utilisateur n'est pas authentifié
           tabBarStyle: isAuthenticated ? undefined : { display: 'none' },
         }}

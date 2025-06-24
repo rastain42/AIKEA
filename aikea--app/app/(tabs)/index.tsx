@@ -320,19 +320,15 @@ export default function HomeScreen() {
 
             <TouchableOpacity style={[styles.button, styles.downloadButton]} onPress={downloadPdf}>
               <Text style={styles.buttonText}>
-                {Platform.OS === 'web' ? 'Télécharger le guide' : 'Enregistrer le guide'}
+                {Platform.OS === 'web' ? 'Télécharger le design' : 'Enregistrer le design'}
               </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={saveGeneratedPdf}>
-              <Text style={styles.buttonText}>Sauvegarder dans mes projets</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={[styles.button, styles.uploadButton]}
               onPress={uploadGeneratedPdfToBucket}
             >
-              <Text style={styles.buttonText}>Partager avec AIKEA</Text>
+              <Text style={styles.buttonText}>Sauvegarder dans AIKEA</Text>
             </TouchableOpacity>
           </View>
         )}
