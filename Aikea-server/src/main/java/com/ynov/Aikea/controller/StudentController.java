@@ -20,9 +20,7 @@ import java.util.Map;
 public class StudentController {
 
     private final ImageUploadCustomBucketService bucketService;
-    private static final Logger logger = LogManager.getLogger(StudentController.class);
-
-    /**
+    private static final Logger logger = LogManager.getLogger(StudentController.class);    /**
      * POST /student/upload - Upload d'un fichier vers le bucket externe
      */
     @PostMapping("/upload")
@@ -31,26 +29,26 @@ public class StudentController {
             @RequestParam("idExterne") String idExterne,
             @RequestParam(value = "tag1", required = false) String tag1,
             @RequestParam(value = "tag2", required = false) String tag2,
-            @RequestParam(value = "tag3", required = false) String tag3) {
-        
-        try {            logger.info("📤 Upload file via student endpoint: {} (idExterne: {})", file.getOriginalFilename(), idExterne);
+            @RequestParam(value = "tag3", required = false) String tag3,
+            @RequestParam(value = "description", required = false) String description) {
+          try {            logger.info("📤 Upload file via student endpoint: {} (idExterne: {}, description: {})", file.getOriginalFilename(), idExterne, description);
             
-            // Upload vers le bucket externe
+            // Upload vers le bucket externe avec description
             UploadedImageDTO result = bucketService.uploadFile(
                 file, 
                 idExterne, 
                 tag1 != null ? tag1 : "pdf",
                 tag2 != null ? tag2 : "student", 
-                tag3 != null ? tag3 : "upload"
-            );
-
-            Map<String, Object> response = new HashMap<>();
+                tag3 != null ? tag3 : "upload",
+                description // Nouveau paramètre pour le nom d'affichage
+            );            Map<String, Object> response = new HashMap<>();
             response.put("idExterne", idExterne);
             response.put("url", result.getUrl());
             response.put("id", result.getId());
             response.put("tag1", tag1 != null ? tag1 : "pdf");
             response.put("tag2", tag2 != null ? tag2 : "student");
             response.put("tag3", tag3 != null ? tag3 : "upload");
+            response.put("description", description); // Inclure la description dans la réponse
             response.put("success", true);
 
             logger.info("✅ File uploaded successfully: {}", result.getUrl());

@@ -20,6 +20,7 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        headerShown: false, // S'assurer que les headers individuels ne sont pas affichés
       }}
     >
       {' '}
@@ -35,8 +36,8 @@ export default function TabLayout() {
         options={{
           title: 'Mes Créations',
           tabBarIcon: ({ color }) => <TabBarIcon name="folder" color={color} />,
-          // Masquer l'onglet admin si l'utilisateur n'est pas authentifié
-          tabBarStyle: isAuthenticated ? undefined : { display: 'none' },
+          // Masquer l'onglet admin si l'utilisateur n'est pas authentifié (mais pas la navbar complète)
+          tabBarButton: isAuthenticated ? undefined : () => null,
         }}
       />
     </Tabs>

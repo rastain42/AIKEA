@@ -34,11 +34,17 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
         // Cette méthode n'est plus utilisée - tout passe par le bucket externe
         throw new UnsupportedOperationException("Local storage is disabled. Use external bucket upload instead.");
     }    /**
-     * Upload de fichier avec métadonnées et tags vers le bucket externe
+     * Upload de fichier avec métadonnées et tags vers le bucket externe (version de compatibilité)
      */
     public UploadedImageDTO uploadFile(MultipartFile file, String idExterne, String tag1, String tag2, String tag3) {
-        try {
-            log.info("🚀 Uploading file to external bucket: {} (idExterne: {})", file.getOriginalFilename(), idExterne);
+        return uploadFile(file, idExterne, tag1, tag2, tag3, null);
+    }
+
+    /**
+     * Upload de fichier avec métadonnées et tags vers le bucket externe
+     */
+    public UploadedImageDTO uploadFile(MultipartFile file, String idExterne, String tag1, String tag2, String tag3, String description) {        try {
+            log.info("🚀 Uploading file to external bucket: {} (idExterne: {}, description: {})", file.getOriginalFilename(), idExterne, description);
             
             // Préparer les headers avec le token JWT
             HttpHeaders headers = new HttpHeaders();
@@ -57,6 +63,7 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
             if (tag1 != null) body.add("tag1", tag1);
             if (tag2 != null) body.add("tag2", tag2);
             if (tag3 != null) body.add("tag3", tag3);
+            if (description != null) body.add("description", description); // Ajouter le nom d'affichage
             
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
               // Faire l'appel vers le bucket externe

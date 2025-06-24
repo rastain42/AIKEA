@@ -214,8 +214,11 @@ export default function HomeScreen() {
         return;
       }
 
-      // Créer un File à partir du Blob
-      const fileName = `aikea_design_${Date.now()}_${prompt.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      // Créer un nom de fichier plus descriptif
+      const designName = prompt.slice(0, 40).replace(/[^a-zA-Z0-9\s]/g, '').trim().replace(/\s+/g, '_');
+      const qualityPrefix = quality === 'HIGH' ? 'UltraHD' : quality === 'MEDIUM' ? 'HD' : 'Standard';
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const fileName = `AIKEA_${qualityPrefix}_${designName}_${dateStr}.pdf`;
       const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
 
       // Générer un ID unique pour ce design
@@ -229,7 +232,8 @@ export default function HomeScreen() {
         idExterne,
         'design-interieur', // tag1
         quality.toLowerCase(), // tag2
-        prompt.slice(0, 50) // tag3 - premier 50 caractères de la description
+        prompt.slice(0, 50), // tag3 - premier 50 caractères de la description
+        fileName // displayName - nom descriptif pour l'affichage
       );
 
       console.log('✅ Design partagé avec AIKEA:', result);

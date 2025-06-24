@@ -306,11 +306,14 @@ class PdfService {
         }
       }
 
+      console.log('🔍 Debug: Raw API response sample:', data.length > 0 ? data[0] : 'Empty array');
+
       // Transformer les données de l'API en format PdfDocument
       const documents: PdfDocument[] = data.map((item: any) => ({
         id: item.id.toString(),
-        name: item.name || item.fileName,
-        originalName: item.name,
+        // Priorité : description -> tag3 -> originalName -> name -> fileName
+        name: item.description || item.tag3 || item.originalName || item.name || item.fileName,
+        originalName: item.originalName || item.name,
         size: item.size || 0,
         uploadedAt: item.uploadedAt,
         downloadUrl: item.downloadUrl,
@@ -473,7 +476,8 @@ class PdfService {
     idExterne: string,
     tag1?: string,
     tag2?: string,
-    tag3?: string
+    tag3?: string,
+    displayName?: string // Nouveau paramètre pour le nom d'affichage
   ): Promise<{
     idExterne: string;
     url: string;
@@ -488,6 +492,11 @@ class PdfService {
       if (tag1) formData.append('tag1', tag1);
       if (tag2) formData.append('tag2', tag2);
       if (tag3) formData.append('tag3', tag3);
+
+      // Ajouter le nom d'affichage comme description pour le bucket
+      if (displayName) {
+        formData.append('description', displayName);
+      }
 
       const response = await fetch(`${this.API_BASE_URL}/student/upload`, {
         method: 'POST',

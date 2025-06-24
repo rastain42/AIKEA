@@ -10,6 +10,7 @@ import {
   Modal,
   Platform,
   RefreshControl,
+  SafeAreaView,
   StyleSheet,
   Text,
   TextInput,
@@ -146,25 +147,7 @@ const PdfListScreen: React.FC = () => {
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
   }, []);
 
-  /**
-   * Formate la date en soustrayant 2 heures pour le fuseau horaire local
-   */
-  const formatDate = useCallback((dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      // Soustraire 2 heures (2 * 60 * 60 * 1000 ms)
-      const adjustedDate = new Date(date.getTime() + 2 * 60 * 60 * 1000);
-      return adjustedDate.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch {
-      return 'Date invalide';
-    }
-  }, []);
+
   /**
    * Rendu d'un élément de la liste
    */
@@ -184,11 +167,8 @@ const PdfListScreen: React.FC = () => {
             </View>
             <View style={styles.documentInfo}>
               <Text style={styles.documentName} numberOfLines={2}>
-                {item.name || item.originalName || 'Design sans nom'}
+                {item.originalName || item.name || 'Design sans nom'}
               </Text>
-              <View style={styles.documentMeta}>
-                <Text style={styles.documentDate}>� {formatDate(item.uploadedAt)}</Text>
-              </View>{' '}
               {/* Tags pour le design d'intérieur */}
               {item.tags && item.tags.length > 0 && (
                 <View style={styles.tagsContainer}>
@@ -271,7 +251,7 @@ const PdfListScreen: React.FC = () => {
         </TouchableOpacity>
       );
     },
-    [selectedDocument, formatFileSize, formatDate, handleView, handleDelete]
+    [selectedDocument, formatFileSize, handleView, handleDelete]
   );
 
   /**
@@ -297,14 +277,17 @@ const PdfListScreen: React.FC = () => {
   // Affichage du loading principal
   if (loading && documents.length === 0) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#3498db" />
-        <Text style={styles.loadingText}>Chargement de vos designs...</Text>
-      </View>
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3498db" />
+          <Text style={styles.loadingText}>Chargement de vos designs...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Titre de la section */}
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>🏠 Mes Créations AIKEA</Text>
@@ -394,7 +377,7 @@ const PdfListScreen: React.FC = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
