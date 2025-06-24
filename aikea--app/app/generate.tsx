@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, ActivityIndicator, ScrollView, Text, View, Linking, Platform } from 'react-native';
-import { router } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { v4 as uuidv4 } from 'uuid';
 import { pdfService } from '@/services/PdfService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
+import * as FileSystem from 'expo-file-system';
+import { router } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function GenerateScreen() {
     const [prompt, setPrompt] = useState('');
@@ -277,7 +277,9 @@ export default function GenerateScreen() {
                     <Text style={styles.buttonText}>
                         {loading ? 'Génération en cours...' : 'Générer le PDF'}
                     </Text>
-                </TouchableOpacity>                {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
+                </TouchableOpacity>
+
+                {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
 
                 {pdfBlob && (
                     <View style={styles.pdfContainer}>
