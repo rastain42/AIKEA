@@ -14,7 +14,6 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import { usePdfService } from '@/hooks/usePdfService';
 import { PdfDocument } from '@/services/PdfService';
 
@@ -325,10 +324,6 @@ const PdfListScreen: React.FC = () => {
           />
         </View>
 
-        <TouchableOpacity style={styles.addButton} onPress={() => router.push('/generate')}>
-          <Ionicons name="add-circle" size={20} color="#27ae60" />
-        </TouchableOpacity>
-
         <TouchableOpacity style={styles.syncIconButton} onPress={syncDocuments} disabled={loading}>
           <Ionicons name="sync" size={20} color="#3498db" />
         </TouchableOpacity>
@@ -337,8 +332,8 @@ const PdfListScreen: React.FC = () => {
       <View style={styles.helpContainer}>
         <Ionicons name="information-circle" size={16} color="#3498db" />
         <Text style={styles.helpText}>
-          Cliquez sur + pour générer un nouveau PDF, sur sync pour synchroniser, ou développez un
-          document pour le voir ou le supprimer
+          Cliquez sur sync pour synchroniser, ou développez un document pour le voir ou le
+          supprimer. Utilisez l&apos;onglet principal pour générer de nouveaux PDFs.
         </Text>
       </View>
       {/* Message d'erreur */}

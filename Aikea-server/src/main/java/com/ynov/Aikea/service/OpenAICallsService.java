@@ -44,7 +44,9 @@ public class OpenAICallsService {
         imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
 
         return imageResponse.getFirst().getUrl() ;
-    }    public String generateWithDalle(ImageRequest imageRequest) throws Exception {
+    }
+
+    public String generateWithDalle(ImageRequest imageRequest) throws Exception {
         if (imageRequest.getN() != 1) {
             throw new Exception("Only support Single Image");
         }
