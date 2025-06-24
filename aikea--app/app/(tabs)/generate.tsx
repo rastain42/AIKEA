@@ -1,23 +1,12 @@
-import { useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    Linking,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
-} from 'react-native';
-import { router } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
-import { v4 as uuidv4 } from 'uuid';
 import { pdfService } from '@/services/PdfService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Picker } from '@react-native-picker/picker';
+import * as FileSystem from 'expo-file-system';
+import { router } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function GenerateScreen() {
     const [prompt, setPrompt] = useState('');
@@ -25,18 +14,13 @@ export default function GenerateScreen() {
     const [generatedPdf, setGeneratedPdf] = useState<string | null>(null);
     const [pdfUri, setPdfUri] = useState<string | null>(null);
     const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [_uploadedToBucket, setUploadedToBucket] = useState<{
-        url: string;
-        idExterne: string;
-    } | null>(null);
+    const [loading, setLoading] = useState(false); const [uploadedToBucket, setUploadedToBucket] = useState<{ url: string, idExterne: string } | null>(null);
 
     const generatePdf = async () => {
         if (!prompt.trim()) {
             Alert.alert('Erreur', 'Veuillez saisir un prompt');
             return;
-        }
-        setLoading(true);
+        } setLoading(true);
         console.log('🚀 Début génération PDF avec prompt:', prompt, 'qualité:', quality);
         try {
             // Appel à l'API pour générer le PDF
@@ -53,7 +37,7 @@ export default function GenerateScreen() {
 
             if (!response.ok) {
                 throw new Error('Erreur lors de la génération du PDF');
-            } // Récupérer le PDF en blob
+            }            // Récupérer le PDF en blob
             const blob = await response.blob();
             console.log('📄 PDF blob créé:', blob.size, 'bytes');
             setPdfBlob(blob);
@@ -130,7 +114,7 @@ export default function GenerateScreen() {
                     if (isAvailable) {
                         await Sharing.shareAsync(pdfUri, {
                             mimeType: 'application/pdf',
-                            dialogTitle: 'Ouvrir le PDF avec...',
+                            dialogTitle: 'Ouvrir le PDF avec...'
                         });
                     } else {
                         await Linking.openURL(pdfUri);
@@ -138,8 +122,8 @@ export default function GenerateScreen() {
                 }
             }
         } catch (error) {
-            console.error("Erreur lors de l'ouverture du PDF:", error);
-            Alert.alert('Erreur', "Impossible d'ouvrir le PDF");
+            console.error('Erreur lors de l\'ouverture du PDF:', error);
+            Alert.alert('Erreur', 'Impossible d\'ouvrir le PDF');
         }
     };
 
@@ -188,11 +172,11 @@ export default function GenerateScreen() {
             await AsyncStorage.setItem('@generated_pdfs', JSON.stringify(updatedPdfs));
 
             Alert.alert('Succès', 'PDF sauvegardé avec succès', [
-                { text: 'OK', onPress: () => router.back() },
+                { text: 'OK', onPress: () => router.back() }
             ]);
         } catch (error) {
-            console.error("Erreur lors de l'enregistrement:", error);
-            Alert.alert('Erreur', "Impossible d'enregistrer le PDF");
+            console.error('Erreur lors de l\'enregistrement:', error);
+            Alert.alert('Erreur', 'Impossible d\'enregistrer le PDF');
         }
     };
 
@@ -230,7 +214,7 @@ export default function GenerateScreen() {
                 file,
                 idExterne,
                 'generated', // tag1
-                quality.toLowerCase(), // tag2
+                quality.toLowerCase(), // tag2  
                 prompt.slice(0, 50) // tag3 - premier 50 caractères du prompt
             );
 
@@ -239,20 +223,21 @@ export default function GenerateScreen() {
 
             Alert.alert(
                 'Succès',
-                "PDF généré et sauvegardé dans le système!\nVous pouvez maintenant le retrouver dans l'onglet Admin.",
+                'PDF généré et sauvegardé dans le système!\nVous pouvez maintenant le retrouver dans l\'onglet Admin.',
                 [
                     { text: 'OK' },
                     {
                         text: 'Voir dans Admin',
-                        onPress: () => router.push('/(tabs)/admin'),
-                    },
+                        onPress: () => router.push('/(tabs)/admin')
+                    }
                 ]
             );
+
         } catch (error) {
             console.error('❌ Erreur upload bucket:', error);
             Alert.alert(
-                "Erreur d'upload",
-                error instanceof Error ? error.message : "Impossible d'uploader le PDF vers le système"
+                'Erreur d\'upload',
+                error instanceof Error ? error.message : 'Impossible d\'uploader le PDF vers le système'
             );
         }
     };
@@ -261,6 +246,7 @@ export default function GenerateScreen() {
         <ScrollView contentContainerStyle={styles.scrollContainer}>
             <View style={styles.container}>
                 <Text style={styles.title}>Générer un PDF</Text>
+
                 <TextInput
                     style={styles.promptInput}
                     placeholder="Décrivez le contenu du PDF que vous souhaitez générer..."
@@ -269,11 +255,12 @@ export default function GenerateScreen() {
                     multiline
                     numberOfLines={4}
                 />
+
                 <Text style={styles.label}>Qualité du PDF :</Text>
                 <View style={styles.pickerContainer}>
                     <Picker
                         selectedValue={quality}
-                        onValueChange={itemValue => setQuality(itemValue)}
+                        onValueChange={(itemValue) => setQuality(itemValue)}
                         style={styles.picker}
                     >
                         <Picker.Item label="Basse" value="LOW" />
@@ -281,6 +268,7 @@ export default function GenerateScreen() {
                         <Picker.Item label="Haute" value="HIGH" />
                     </Picker>
                 </View>
+
                 <TouchableOpacity
                     style={[styles.button, styles.generateButton]}
                     onPress={generatePdf}
@@ -289,8 +277,10 @@ export default function GenerateScreen() {
                     <Text style={styles.buttonText}>
                         {loading ? 'Génération en cours...' : 'Générer le PDF'}
                     </Text>
-                </TouchableOpacity>{' '}
+                </TouchableOpacity>
+
                 {loading && <ActivityIndicator size="large" color="#0000ff" style={styles.loader} />}
+
                 {pdfBlob && (
                     <View style={styles.pdfContainer}>
                         <Text style={styles.generatedTitle}>PDF généré:</Text>
@@ -302,19 +292,28 @@ export default function GenerateScreen() {
                             <Text style={styles.pdfDetails}>Qualité: {quality}</Text>
                         </View>
 
-                        <TouchableOpacity style={[styles.button, styles.openButton]} onPress={openPdf}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.openButton]}
+                            onPress={openPdf}
+                        >
                             <Text style={styles.buttonText}>
                                 {Platform.OS === 'web' ? 'Ouvrir le PDF' : 'Ouvrir le PDF'}
                             </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.button, styles.downloadButton]} onPress={downloadPdf}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.downloadButton]}
+                            onPress={downloadPdf}
+                        >
                             <Text style={styles.buttonText}>
                                 {Platform.OS === 'web' ? 'Télécharger le PDF' : 'Enregistrer le PDF'}
                             </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={saveGeneratedPdf}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.saveButton]}
+                            onPress={saveGeneratedPdf}
+                        >
                             <Text style={styles.buttonText}>Sauvegarder le PDF</Text>
                         </TouchableOpacity>
 
@@ -326,6 +325,7 @@ export default function GenerateScreen() {
                         </TouchableOpacity>
                     </View>
                 )}
+
                 <TouchableOpacity
                     style={[styles.button, styles.cancelButton]}
                     onPress={() => router.back()}
@@ -388,8 +388,7 @@ const styles = StyleSheet.create({
     },
     downloadButton: {
         backgroundColor: '#f39c12',
-    },
-    saveButton: {
+    }, saveButton: {
         backgroundColor: '#2ecc71',
     },
     uploadButton: {
