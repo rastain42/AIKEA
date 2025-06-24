@@ -44,26 +44,52 @@ public class OpenAICallsService {
         imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
 
         return imageResponse.getFirst().getUrl() ;
-    }
-
-    public String generateWithDalle(ImageRequest imageRequest) throws Exception {
+    }    public String generateWithDalle(ImageRequest imageRequest) throws Exception {
         if (imageRequest.getN() != 1) {
             throw new Exception("Only support Single Image");
         }
 
         try {
+            System.out.println("Making DALL·E request with prompt: " + imageRequest.getPrompt());
+            System.out.println("Model: " + imageRequest.getModel() + ", Size: " + imageRequest.getSize());
+            
             var futureImage = openAI.images().create(imageRequest);
             var imageResponse = futureImage.join();
-            imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
-            return imageResponse.getFirst().getUrl();
+            
+            if (imageResponse == null || imageResponse.isEmpty()) {
+                throw new Exception("OpenAI returned empty response");
+            }
+            
+            var firstImage = imageResponse.getFirst();
+            if (firstImage == null) {
+                throw new Exception("OpenAI returned null image data");
+            }
+            
+            String imageUrl = firstImage.getUrl();
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                throw new Exception("OpenAI returned null or empty image URL");
+            }
+            
+            System.out.println("Successfully received image URL: " + imageUrl);
+            return imageUrl;
+            
         } catch (CompletionException e) {
-            System.err.println("Request failed:");
+            System.err.println("DALL·E API request failed:");
+            String errorMessage = "Unknown error";
+            
             if (e.getCause() != null) {
+                errorMessage = e.getCause().getMessage();
                 e.getCause().printStackTrace();
             } else {
                 e.printStackTrace();
+                errorMessage = e.getMessage();
             }
-            throw new Exception("Failed to generate image with DALL·E", e);
+            
+            throw new Exception("Failed to generate image with DALL·E: " + errorMessage, e);
+        } catch (Exception e) {
+            System.err.println("Unexpected error during DALL·E request: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
     }
 

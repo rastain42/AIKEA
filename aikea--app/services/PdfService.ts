@@ -1,4 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface PdfDocument {
   id: string;
@@ -35,10 +35,9 @@ export interface SyncResult {
 }
 
 class PdfService {
-  private readonly STORAGE_KEY = "@pdf_documents";
-  private readonly SYNC_TIMESTAMP_KEY = "@pdf_last_sync";
-  private readonly API_BASE_URL =
-    process.env.EXPO_PUBLIC_API_URL || "http://localhost:8080";
+  private readonly STORAGE_KEY = '@pdf_documents';
+  private readonly SYNC_TIMESTAMP_KEY = '@pdf_last_sync';
+  private readonly API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
 
   /**
    * Synchroniser les PDFs avec l'API distante
@@ -55,7 +54,7 @@ class PdfService {
     };
 
     try {
-      console.log("🔄 Démarrage de la synchronisation...");
+      console.log('🔄 Démarrage de la synchronisation...');
 
       // 1. Récupérer les données locales
       const localDocuments = await this.getLocalDocuments();
@@ -66,10 +65,7 @@ class PdfService {
       syncResult.remoteCount = remoteDocuments.length;
 
       // 3. Synchroniser les données
-      const { merged, stats } = this.mergeDocuments(
-        localDocuments,
-        remoteDocuments
-      );
+      const { merged, stats } = this.mergeDocuments(localDocuments, remoteDocuments);
 
       syncResult.newDocuments = stats.newDocuments;
       syncResult.updatedDocuments = stats.updatedDocuments;
@@ -80,12 +76,11 @@ class PdfService {
       await this.updateLastSyncTimestamp();
 
       syncResult.success = true;
-      console.log("✅ Synchronisation terminée avec succès");
+      console.log('✅ Synchronisation terminée avec succès');
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Erreur inconnue";
+      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
       syncResult.errors.push(errorMessage);
-      console.error("❌ Erreur lors de la synchronisation:", error);
+      console.error('❌ Erreur lors de la synchronisation:', error);
     }
 
     return syncResult;
@@ -102,7 +97,7 @@ class PdfService {
 
       return await this.getLocalDocuments();
     } catch (error) {
-      console.error("Erreur lors de la récupération des documents:", error);
+      console.error('Erreur lors de la récupération des documents:', error);
       // Fallback sur les données locales
       return await this.getLocalDocuments();
     }
@@ -116,11 +111,11 @@ class PdfService {
     const searchLower = searchText.toLowerCase();
 
     return documents.filter(
-      (doc) =>
+      doc =>
         doc.name.toLowerCase().includes(searchLower) ||
         doc.originalName?.toLowerCase().includes(searchLower) ||
         doc.description?.toLowerCase().includes(searchLower) ||
-        doc.tags?.some((tag) => tag.toLowerCase().includes(searchLower))
+        doc.tags?.some(tag => tag.toLowerCase().includes(searchLower))
     );
   }
 
@@ -129,16 +124,13 @@ class PdfService {
    */
   async getDocumentById(id: string): Promise<PdfDocument | null> {
     const documents = await this.getAllDocuments();
-    return documents.find((doc) => doc.id === id) || null;
+    return documents.find(doc => doc.id === id) || null;
   }
 
   /**
    * Ajouter/Uploader un nouveau PDF
    */
-  async addDocument(
-    file: File | any,
-    customName?: string
-  ): Promise<PdfDocument> {
+  async addDocument(file: File | any, customName?: string): Promise<PdfDocument> {
     try {
       // 1. Valider le fichier
       this.validatePdfFile(file);
@@ -150,8 +142,8 @@ class PdfService {
         originalName: file.name,
         size: file.size || 0,
         uploadedAt: new Date().toISOString(),
-        type: "pdf",
-        mimeType: "application/pdf",
+        type: 'pdf',
+        mimeType: 'application/pdf',
         tags: this.extractTagsFromName(file.name),
       };
 
@@ -161,14 +153,11 @@ class PdfService {
       await this.saveLocalDocuments(documents);
 
       // 4. Essayer d'uploader vers l'API (optionnel, en arrière-plan)
-      this.uploadToRemoteApi(file, newDocument).catch((error) => {
-        console.warn(
-          "Upload distant échoué (sera retenté lors de la sync):",
-          error
-        );
+      this.uploadToRemoteApi(file, newDocument).catch(error => {
+        console.warn('Upload distant échoué (sera retenté lors de la sync):', error);
       });
 
-      console.log("✅ Document ajouté:", newDocument.name);
+      console.log('✅ Document ajouté:', newDocument.name);
       return newDocument;
     } catch (error) {
       console.error("❌ Erreur lors de l'ajout du document:", error);
@@ -184,38 +173,35 @@ class PdfService {
       const documents = await this.getLocalDocuments();
       const initialLength = documents.length;
 
-      const filteredDocuments = documents.filter((doc) => doc.id !== id);
+      const filteredDocuments = documents.filter(doc => doc.id !== id);
 
       if (filteredDocuments.length === initialLength) {
-        console.warn("Document non trouvé pour suppression:", id);
+        console.warn('Document non trouvé pour suppression:', id);
         return false;
       }
 
       await this.saveLocalDocuments(filteredDocuments);
 
-      // Supprimer du serveur distant (optionnel)
-      this.deleteFromRemoteApi(id).catch((error) => {
-        console.warn("Suppression distante échouée:", error);
+      // Supprimer du serveur distant
+      this.deleteFromRemoteApi(id).catch(error => {
+        console.warn('Suppression distante échouée:', error);
       });
 
-      console.log("✅ Document supprimé:", id);
+      console.log('✅ Document supprimé:', id);
       return true;
     } catch (error) {
-      console.error("❌ Erreur lors de la suppression:", error);
+      console.error('❌ Erreur lors de la suppression:', error);
       return false;
     }
   }
 
   async getStats(): Promise<PdfStats> {
     try {
-      console.log("📊 Calcul des statistiques...");
+      console.log('📊 Calcul des statistiques...');
 
       const documents = await this.getLocalDocuments();
       const totalDocuments = documents.length;
-      const totalSize = documents.reduce(
-        (sum, doc) => sum + (doc.size || 0),
-        0
-      );
+      const totalSize = documents.reduce((sum, doc) => sum + (doc.size || 0), 0);
       const averageSize = totalDocuments > 0 ? totalSize / totalDocuments : 0; // ← Calcul de la moyenne
 
       const lastSync = await AsyncStorage.getItem(this.SYNC_TIMESTAMP_KEY);
@@ -224,7 +210,7 @@ class PdfService {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      const documentsThisWeek = documents.filter((doc) => {
+      const documentsThisWeek = documents.filter(doc => {
         const docDate = new Date(doc.uploadedAt);
         return docDate >= oneWeekAgo;
       }).length;
@@ -233,7 +219,7 @@ class PdfService {
       const oneMonthAgo = new Date();
       oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-      const documentsThisMonth = documents.filter((doc) => {
+      const documentsThisMonth = documents.filter(doc => {
         const docDate = new Date(doc.uploadedAt);
         return docDate >= oneMonthAgo;
       }).length;
@@ -247,10 +233,10 @@ class PdfService {
         documentsThisMonth,
       };
 
-      console.log("✅ Statistiques calculées:", stats);
+      console.log('✅ Statistiques calculées:', stats);
       return stats;
     } catch (error) {
-      console.error("❌ Erreur calcul statistiques:", error);
+      console.error('❌ Erreur calcul statistiques:', error);
       throw error;
     }
   }
@@ -259,7 +245,7 @@ class PdfService {
    * Forcer une synchronisation complète
    */
   async forceSyncWithRemote(): Promise<SyncResult> {
-    console.log("🔄 Synchronisation forcée...");
+    console.log('🔄 Synchronisation forcée...');
     return await this.syncWithRemoteApi();
   }
 
@@ -268,7 +254,7 @@ class PdfService {
    */
   async clearLocalCache(): Promise<void> {
     await AsyncStorage.multiRemove([this.STORAGE_KEY, this.SYNC_TIMESTAMP_KEY]);
-    console.log("🗑️ Cache local vidé");
+    console.log('🗑️ Cache local vidé');
   }
 
   // === MÉTHODES PRIVÉES ===
@@ -278,7 +264,7 @@ class PdfService {
       const documentsString = await AsyncStorage.getItem(this.STORAGE_KEY);
       return documentsString ? JSON.parse(documentsString) : [];
     } catch (error) {
-      console.error("Erreur lecture locale:", error);
+      console.error('Erreur lecture locale:', error);
       return [];
     }
   }
@@ -288,39 +274,31 @@ class PdfService {
   }
   private async fetchRemoteDocuments(): Promise<PdfDocument[]> {
     try {
-      console.log("🔄 Fetching documents from backend...");
+      console.log('🔄 Fetching documents from backend...');
 
       // Utiliser GET sans body (standard navigateur) - le backend ajoutera le body pour le bucket
-      const response = await fetch(
-        `${this.API_BASE_URL}/student/upload/search`,
-        {
-          method: "GET",
-          headers: {
-            Accept: "application/json",
-            // TODO: Ajouter le token d'authentification si nécessaire
-          },
-          // Pas de body côté frontend - le backend s'occupe d'ajouter le body pour le bucket
-        }
-      );
+      const response = await fetch(`${this.API_BASE_URL}/student/upload/search`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          // TODO: Ajouter le token d'authentification si nécessaire
+        },
+        // Pas de body côté frontend - le backend s'occupe d'ajouter le body pour le bucket
+      });
 
       if (!response.ok) {
-        throw new Error(
-          `Erreur API: ${response.status} ${response.statusText}`
-        );
+        throw new Error(`Erreur API: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
-      console.log("📥 Raw API response:", data);
+      console.log('📥 Raw API response:', data);
 
       // Vérifier si la réponse indique un filtrage IP
       if (Array.isArray(data) && data.length > 0) {
         const firstItem = data[0];
-        if (firstItem.status === "ip_filtered" || firstItem.type === "info") {
-          console.warn(
-            "🚫 Backend détecté comme filtré par IP:",
-            firstItem.message
-          );
-          console.warn("💡 Solution suggérée:", firstItem.solution);
+        if (firstItem.status === 'ip_filtered' || firstItem.type === 'info') {
+          console.warn('🚫 Backend détecté comme filtré par IP:', firstItem.message);
+          console.warn('💡 Solution suggérée:', firstItem.solution);
 
           // Retourner une liste vide mais logguer le problème
           // On pourrait aussi retourner un document d'information
@@ -338,24 +316,20 @@ class PdfService {
         downloadUrl: item.downloadUrl,
         viewUrl: item.viewUrl,
         url: item.url,
-        type: "pdf",
-        mimeType: item.mimeType || "application/pdf",
+        type: 'pdf',
+        mimeType: item.mimeType || 'application/pdf',
         tags: item.tags || [],
         description: item.description,
       }));
 
-      console.log(
-        `✅ Successfully fetched ${documents.length} documents from remote`
-      );
+      console.log(`✅ Successfully fetched ${documents.length} documents from remote`);
       return documents;
     } catch (error) {
-      console.error("❌ Erreur récupération distante:", error);
+      console.error('❌ Erreur récupération distante:', error);
 
       // Si l'erreur contient "403", c'est probablement du filtrage IP
-      if (error instanceof Error && error.message.includes("403")) {
-        console.warn(
-          "🚫 Erreur 403 détectée - probablement du filtrage IP sur le bucket externe"
-        );
+      if (error instanceof Error && error.message.includes('403')) {
+        console.warn('🚫 Erreur 403 détectée - probablement du filtrage IP sur le bucket externe');
         console.warn(
           "💡 Le backend ne peut pas accéder au bucket, mais l'app peut fonctionner en local"
         );
@@ -373,19 +347,17 @@ class PdfService {
     const stats = { newDocuments: 0, updatedDocuments: 0, deletedDocuments: 0 };
 
     // Créer une map des documents locaux pour comparaison rapide
-    const localMap = new Map(local.map((doc) => [doc.id, doc]));
+    const localMap = new Map(local.map(doc => [doc.id, doc]));
 
     // Traiter les documents distants
-    remote.forEach((remoteDoc) => {
+    remote.forEach(remoteDoc => {
       const localDoc = localMap.get(remoteDoc.id);
 
       if (!localDoc) {
         // Nouveau document
         merged.push(remoteDoc);
         stats.newDocuments++;
-      } else if (
-        new Date(remoteDoc.uploadedAt) > new Date(localDoc.uploadedAt)
-      ) {
+      } else if (new Date(remoteDoc.uploadedAt) > new Date(localDoc.uploadedAt)) {
         // Document mis à jour
         merged.push(remoteDoc);
         stats.updatedDocuments++;
@@ -398,26 +370,23 @@ class PdfService {
     });
 
     // Ajouter les documents qui n'existent que localement
-    localMap.forEach((localDoc) => {
+    localMap.forEach(localDoc => {
       merged.push(localDoc);
     });
 
     return { merged, stats };
   }
-  private async uploadToRemoteApi(
-    file: File | any,
-    document: PdfDocument
-  ): Promise<void> {
+  private async uploadToRemoteApi(file: File | any, document: PdfDocument): Promise<void> {
     // Utiliser l'endpoint student/upload pour uploader les fichiers
     const formData = new FormData();
-    formData.append("file", file);
-    formData.append("idExterne", document.id);
-    formData.append("tag1", "pdf");
-    formData.append("tag2", "generated");
-    formData.append("tag3", document.name);
+    formData.append('file', file);
+    formData.append('idExterne', document.id);
+    formData.append('tag1', 'pdf');
+    formData.append('tag2', 'generated');
+    formData.append('tag3', document.name);
 
     const response = await fetch(`${this.API_BASE_URL}/student/upload`, {
-      method: "POST",
+      method: 'POST',
       body: formData,
       headers: {
         // TODO: Ajouter le token d'authentification si nécessaire
@@ -430,12 +399,11 @@ class PdfService {
   }
   private async deleteFromRemoteApi(id: string): Promise<void> {
     const response = await fetch(`${this.API_BASE_URL}/student/upload/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
       headers: {
-        Accept: "application/json",
+        Accept: 'application/json',
         // TODO: Ajouter le token d'authentification si nécessaire
       },
-      // Pas de body côté frontend - le backend s'occupe d'ajouter le body pour le bucket
     });
 
     if (!response.ok) {
@@ -455,29 +423,26 @@ class PdfService {
   }
 
   private async updateLastSyncTimestamp(): Promise<void> {
-    await AsyncStorage.setItem(
-      this.SYNC_TIMESTAMP_KEY,
-      new Date().toISOString()
-    );
+    await AsyncStorage.setItem(this.SYNC_TIMESTAMP_KEY, new Date().toISOString());
   }
 
   private validatePdfFile(file: any): void {
     if (!file) {
-      throw new Error("Aucun fichier fourni");
+      throw new Error('Aucun fichier fourni');
     }
 
     if (file.size === 0) {
-      throw new Error("Le fichier est vide");
+      throw new Error('Le fichier est vide');
     }
 
     const maxSize = 50 * 1024 * 1024; // 50MB
     if (file.size > maxSize) {
-      throw new Error("Le fichier est trop volumineux (max 50MB)");
+      throw new Error('Le fichier est trop volumineux (max 50MB)');
     }
 
-    const fileName = file.name?.toLowerCase() || "";
-    if (!fileName.endsWith(".pdf")) {
-      throw new Error("Le fichier doit être un PDF");
+    const fileName = file.name?.toLowerCase() || '';
+    if (!fileName.endsWith('.pdf')) {
+      throw new Error('Le fichier doit être un PDF');
     }
   }
 
@@ -486,17 +451,17 @@ class PdfService {
   }
 
   private extractFileName(originalName: string): string {
-    return originalName.replace(/\.[^/.]+$/, "");
+    return originalName.replace(/\.[^/.]+$/, '');
   }
 
   private extractTagsFromName(fileName: string): string[] {
     // Extraire des tags basés sur le nom du fichier
     const tags: string[] = [];
 
-    if (fileName.toLowerCase().includes("facture")) tags.push("facture");
-    if (fileName.toLowerCase().includes("contrat")) tags.push("contrat");
-    if (fileName.toLowerCase().includes("rapport")) tags.push("rapport");
-    if (fileName.match(/\d{4}/)) tags.push("date"); // Contient une année
+    if (fileName.toLowerCase().includes('facture')) tags.push('facture');
+    if (fileName.toLowerCase().includes('contrat')) tags.push('contrat');
+    if (fileName.toLowerCase().includes('rapport')) tags.push('rapport');
+    if (fileName.match(/\d{4}/)) tags.push('date'); // Contient une année
 
     return tags;
   }
@@ -518,14 +483,14 @@ class PdfService {
   }> {
     try {
       const formData = new FormData();
-      formData.append("file", file);
-      formData.append("idExterne", idExterne);
-      if (tag1) formData.append("tag1", tag1);
-      if (tag2) formData.append("tag2", tag2);
-      if (tag3) formData.append("tag3", tag3);
+      formData.append('file', file);
+      formData.append('idExterne', idExterne);
+      if (tag1) formData.append('tag1', tag1);
+      if (tag2) formData.append('tag2', tag2);
+      if (tag3) formData.append('tag3', tag3);
 
       const response = await fetch(`${this.API_BASE_URL}/student/upload`, {
-        method: "POST",
+        method: 'POST',
         body: formData,
         headers: {
           // TODO: Ajouter le token d'authentification si nécessaire
@@ -538,16 +503,14 @@ class PdfService {
             `Fichier trop volumineux pour être uploadé. Taille maximale autorisée: 50MB`
           );
         }
-        throw new Error(
-          `Upload failed: ${response.status} - ${response.statusText}`
-        );
+        throw new Error(`Upload failed: ${response.status} - ${response.statusText}`);
       }
 
       const result = await response.json();
-      console.log("✅ Fichier uploadé via student endpoint:", result);
+      console.log('✅ Fichier uploadé via student endpoint:', result);
       return result;
     } catch (error) {
-      console.error("❌ Erreur upload student:", error);
+      console.error('❌ Erreur upload student:', error);
       throw error;
     }
   }
