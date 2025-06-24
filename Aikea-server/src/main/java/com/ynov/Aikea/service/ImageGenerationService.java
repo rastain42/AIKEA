@@ -38,6 +38,7 @@ public class ImageGenerationService {
 
     private final MediaType imageType = MediaType.IMAGE_PNG;
     private final ImageUploadCloudinaryService imageUploadCloudinaryService;
+    private final ImageUploadCustomBucketService imageUploadCustomBucketService;
 
     private String basePath;
     private final ResourceLoader resourceLoader;

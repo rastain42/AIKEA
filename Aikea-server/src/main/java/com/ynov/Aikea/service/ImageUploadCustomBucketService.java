@@ -20,10 +20,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ImageUploadCustomBucketService implements ImageUploadService {
 
-    @Value("${bucket.path:/uploads}")
+    @Value("${bucket.path:uploads}")
     private String bucketPath;
 
-    @Value("${bucket.base-url:http://localhost:8080}")
+    @Value("${bucket.base-url}")
     private String baseUrl;
 
     @Value("${bucket.token}")
@@ -73,20 +73,22 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
      */
     public UploadedImageDTO uploadFile(MultipartFile file, String idExterne, String tag1, String tag2, String tag3) {
         try {
-            log.debug("Starting file upload with JWT token authentication");
-
             // Validation du fichier
             validateFile(file);
 
             // Créer le dossier avec les tags comme structure
             Path uploadPath = createDirectoryStructure(tag1, tag2, tag3);
+            log.info("[uploadFile] Dossier de destination: {}", uploadPath);
 
             // Générer le nom de fichier avec métadonnées
             String fileName = generateFileNameWithMetadata(file.getOriginalFilename(), idExterne, tag1);
+            log.info("[uploadFile] Nom de fichier généré: {}", fileName);
             Path filePath = uploadPath.resolve(fileName);
+            log.info("[uploadFile] Chemin complet du fichier: {}", filePath);
 
             // Copier le fichier
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+            log.info("[uploadFile] Copie terminée");
 
             // Construire l'URL d'accès
             String relativePath = Paths.get(bucketPath).relativize(filePath).toString().replace("\\", "/");
@@ -100,7 +102,7 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                     .build();
 
         } catch (IOException e) {
-            log.error("Error uploading file to custom bucket", e);
+            log.error("[uploadFile] Error uploading file to custom bucket", e);
             throw new RuntimeException("Failed to upload file", e);
         }
     }
@@ -373,7 +375,8 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
     }
 
     private Path createDirectoryStructure(String tag1, String tag2, String tag3) throws IOException {
-        Path basePath = Paths.get(bucketPath);
+        // Path basePath = Paths.get(bucketPath);
+        Path basePath = Paths.get(baseUrl + "/" + bucketPath);
 
         // Créer une structure de dossiers basée sur les tags
         StringBuilder pathBuilder = new StringBuilder();
@@ -381,15 +384,15 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
             pathBuilder.append(sanitizeForPath(tag1));
         }
         if (tag2 != null && !tag2.isEmpty()) {
-            if (pathBuilder.length() > 0) pathBuilder.append("/");
+            if (!pathBuilder.isEmpty()) pathBuilder.append("/");
             pathBuilder.append(sanitizeForPath(tag2));
         }
         if (tag3 != null && !tag3.isEmpty()) {
-            if (pathBuilder.length() > 0) pathBuilder.append("/");
+            if (!pathBuilder.isEmpty()) pathBuilder.append("/");
             pathBuilder.append(sanitizeForPath(tag3));
         }
 
-        Path finalPath = pathBuilder.length() > 0
+        Path finalPath = !pathBuilder.isEmpty()
                 ? basePath.resolve(pathBuilder.toString())
                 : basePath.resolve("uncategorized");
 

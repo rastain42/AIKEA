@@ -1,10 +1,7 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, Alert, Text, View, ActivityIndicator, Platform } from 'react-native';
-import { router } from 'expo-router';
-import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/context/AuthProvider';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
@@ -20,21 +17,12 @@ export default function LoginScreen() {
 
         setLoading(true);
         try {
-            const response = await axios.post('http://localhost:8080/api/login', {
-                username,
-                password
-            });
-
-            if (response.data && response.data.token) {
-                await AsyncStorage.setItem('token', response.data.token);
-                await AsyncStorage.setItem('@username', response.data.username || username);
-                await AsyncStorage.setItem('@auth_status', 'true');
-
-                login(username, password);
-
+            const success = await login(username, password);
+            
+            if (success) {
                 router.replace('/(tabs)/admin');
             } else {
-                Alert.alert('Erreur', 'Problème lors de l\'authentification');
+                Alert.alert('Erreur', 'Identifiants incorrects ou problème de serveur');
             }
         } catch (error) {
             console.error('Erreur de connexion:', error);
@@ -44,7 +32,6 @@ export default function LoginScreen() {
             );
         } finally {
             setLoading(false);
-
         }
     };
 

@@ -63,6 +63,13 @@ class PdfService {
       const remoteDocuments = await this.fetchRemoteDocuments();
       syncResult.remoteCount = remoteDocuments.length;
 
+      // Si pas d'endpoints distants disponibles, garder les données locales
+      if (remoteDocuments.length === 0 && syncResult.localCount > 0) {
+        console.log("ℹ️ Mode local uniquement - données locales conservées");
+        syncResult.success = true;
+        return syncResult;
+      }
+
       // 3. Synchroniser les données
       const { merged, stats } = this.mergeDocuments(
         localDocuments,
@@ -264,6 +271,12 @@ class PdfService {
         },
       });
 
+      if (response.status === 404) {
+        // Backend doesn't have PDF endpoints yet, return empty array
+        console.log("ℹ️ Endpoint /api/pdfs non disponible, mode local uniquement");
+        return [];
+      }
+
       if (!response.ok) {
         throw new Error(
           `Erreur API: ${response.status} ${response.statusText}`
@@ -274,7 +287,8 @@ class PdfService {
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Erreur récupération distante:", error);
-      throw error;
+      // Return empty array instead of throwing to allow local-only operation
+      return [];
     }
   }
 
@@ -319,28 +333,48 @@ class PdfService {
     file: File | any,
     document: PdfDocument
   ): Promise<void> {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("name", document.name);
-    formData.append("id", document.id);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("name", document.name);
+      formData.append("id", document.id);
 
-    const response = await fetch(`${this.API_BASE_URL}/api/pdfs/upload`, {
-      method: "POST",
-      body: formData,
-    });
+      const response = await fetch(`${this.API_BASE_URL}/api/pdfs/upload`, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`);
+      if (response.status === 404) {
+        console.log("ℹ️ Endpoint /api/pdfs/upload non disponible, upload local uniquement");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.warn("Upload distant échoué ou non disponible:", error);
+      // Don't throw error to allow local-only operation
     }
   }
 
   private async deleteFromRemoteApi(id: string): Promise<void> {
-    const response = await fetch(`${this.API_BASE_URL}/api/pdfs/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/api/pdfs/${id}`, {
+        method: "DELETE",
+      });
 
-    if (!response.ok) {
-      throw new Error(`Delete failed: ${response.status}`);
+      if (response.status === 404) {
+        console.log("ℹ️ Endpoint /api/pdfs/delete non disponible, suppression locale uniquement");
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.status}`);
+      }
+    } catch (error) {
+      console.warn("Suppression distante échouée ou non disponible:", error);
+      // Don't throw error to allow local-only operation
     }
   }
 

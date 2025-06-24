@@ -24,7 +24,7 @@ export default function GenerateScreen() {
         setLoading(true);
         try {
             // Appel à l'API pour générer le PDF
-            const response = await fetch('http://localhost:8080/generate-pdf/create', {
+            const response = await fetch('http://localhost:8080/generate-pdf/create-and-upload', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

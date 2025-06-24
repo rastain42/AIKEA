@@ -88,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkAuth = async () => {
             try {
+                console.log('AuthProvider - Checking authentication status');
                 const isAuth = await AsyncStorage.getItem('@auth_status');
                 const storedUsername = await AsyncStorage.getItem('@username');
                 let token;
@@ -98,14 +99,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     token = await SecureStore.getItemAsync('auth_token');
                 }
 
+                // Vérifier aussi le token stocké dans AsyncStorage (pour compatibilité)
+                if (!token) {
+                    token = await AsyncStorage.getItem('token');
+                }
+
+                console.log('AuthProvider - Auth check results:', {
+                    isAuth,
+                    storedUsername,
+                    hasToken: !!token,
+                    platform: Platform.OS
+                });
+
                 if (isAuth === 'true' && token) {
+                    console.log('AuthProvider - User is authenticated, setting state');
                     setIsAuthenticated(true);
                     if (storedUsername) {
                         setUsername(storedUsername);
                     }
+                } else {
+                    console.log('AuthProvider - User is not authenticated');
+                    setIsAuthenticated(false);
+                    setUsername(null);
                 }
             } catch (error) {
                 console.error("Erreur lors de la vérification de l'authentification", error);
+                setIsAuthenticated(false);
+                setUsername(null);
             }
         };
 
@@ -168,24 +188,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const logout = async (): Promise<void> => {
         try {
+            console.log('AuthProvider - Starting logout process');
+            
             // Suppression des informations d'authentification
             await AsyncStorage.removeItem('@auth_status');
             await AsyncStorage.removeItem('@username');
+            // Supprimer aussi le token stocké dans AsyncStorage (pour compatibilité)
+            await AsyncStorage.removeItem('token');
+            console.log('AuthProvider - AsyncStorage cleared');
 
             // Suppression du token selon la plateforme
             if (Platform.OS === 'web') {
                 localStorage.removeItem('auth_token');
+                console.log('AuthProvider - Web localStorage cleared');
             } else {
                 await SecureStore.deleteItemAsync('auth_token');
+                console.log('AuthProvider - Mobile SecureStore cleared');
             }
 
             // Suppression du token des headers axios
             delete axios.defaults.headers.common['Authorization'];
+            console.log('AuthProvider - Axios headers cleared');
 
             setIsAuthenticated(false);
             setUsername(null);
+            console.log('AuthProvider - State updated, logout completed');
         } catch (error) {
             console.error('Erreur lors de la déconnexion', error);
+            throw error; // Re-throw pour que l'appelant puisse gérer l'erreur
         }
     };
 

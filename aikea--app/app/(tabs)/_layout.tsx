@@ -1,9 +1,9 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
 import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
 import { useAuth } from '@/context/AuthProvider';
+import { useColorScheme } from '@/hooks/useColorScheme';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { Tabs } from 'expo-router';
+import React from 'react';
 
 function TabBarIcon(props: {
   name: React.ComponentProps<typeof FontAwesome>['name'];
@@ -15,6 +15,11 @@ function TabBarIcon(props: {
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { isAuthenticated } = useAuth();
+
+  // Si l'utilisateur n'est pas authentifié, ne pas afficher les tabs
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <Tabs
@@ -29,12 +34,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="login"
+        name="admin"
         options={{
           title: 'Administration',
           tabBarIcon: ({ color }) => <TabBarIcon name="gear" color={color} />,
-          // Masquer l'onglet admin si l'utilisateur n'est pas authentifié
-          tabBarStyle: isAuthenticated ? undefined : { display: 'none' },
         }}
       />
     </Tabs>

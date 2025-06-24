@@ -1,19 +1,20 @@
-import { useEffect, useState } from 'react';
-import {
-    StyleSheet,
-    FlatList,
-    TouchableOpacity,
-    TextInput,
-    Alert,
-    Text,
-    View,
-    ActivityIndicator,
-    RefreshControl
-} from 'react-native';
-import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthProvider';
 import { usePdfService } from '@/hooks/usePdfService';
 import { PdfDocument } from '@/services/PdfService';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 
 export default function AdminScreen() {
     const { isAuthenticated, logout } = useAuth();
@@ -36,12 +37,16 @@ export default function AdminScreen() {
     const [stats, setStats] = useState<any>(null);
 
     useEffect(() => {
-        if (!isAuthenticated) {
-            router.replace('/login');
-            return;
-        }
+        // Attendre un peu pour s'assurer que le routeur est prêt
+        const timer = setTimeout(() => {
+            if (!isAuthenticated) {
+                router.replace('/login');
+            } else {
+                loadStats();
+            }
+        }, 100);
 
-        loadStats();
+        return () => clearTimeout(timer);
     }, [isAuthenticated]);
 
     useEffect(() => {
@@ -126,14 +131,12 @@ export default function AdminScreen() {
     };
 
     const handleLogout = async () => {
-        Alert.alert(
-            "Déconnexion",
-            "Êtes-vous sûr de vouloir vous déconnecter ?",
-            [
-                { text: "Annuler" },
-                { text: "Déconnecter", onPress: logout }
-            ]
-        );
+        try {
+            await logout();
+        } catch (error) {
+            console.error('Erreur lors de la déconnexion:', error);
+            Alert.alert('Erreur', 'Impossible de se déconnecter');
+        }
     };
 
     const formatFileSize = (bytes: number): string => {
@@ -397,11 +400,15 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         backgroundColor: 'white',
         borderRadius: 8,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
-        elevation: 2,
+        ...(Platform.OS === 'web' ? {
+            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+        } : {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.1,
+            shadowRadius: 2,
+            elevation: 2,
+        }),
         alignItems: 'center',
     },
     documentIcon: {
