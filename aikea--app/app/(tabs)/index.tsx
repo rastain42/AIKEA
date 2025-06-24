@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
@@ -15,14 +15,16 @@ export default function HomeScreen() {
           source={require('@/assets/images/partial-react-logo.png')}
           style={styles.reactLogo}
         />
-      }>
+      }
+    >
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">AIKEA APP</ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
         <ThemedText>
-          Il faudra que, depuis votre téléphone, vous soyez en mesure d’afficher une liste de données basée sur une requête avec quelques règles métiers
+          Il faudra que, depuis votre téléphone, vous soyez en mesure d’afficher une liste de
+          données basée sur une requête avec quelques règles métiers
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>

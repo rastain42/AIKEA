@@ -260,7 +260,74 @@
 					<artifactId>flyway-mysql</artifactId>
 					<version>9.22.3</version>
 				</dependency>
-			</dependencies>
+			</dependencies>		</plugin>
+		
+		<!-- Checkstyle Plugin for code style checking -->
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-checkstyle-plugin</artifactId>
+			<version>3.3.1</version>
+			<configuration>
+				<configLocation>checkstyle.xml</configLocation>
+				<encoding>UTF-8</encoding>
+				<consoleOutput>true</consoleOutput>
+				<failsOnError>true</failsOnError>
+				<linkXRef>false</linkXRef>
+			</configuration>
+			<executions>
+				<execution>
+					<id>validate</id>
+					<phase>validate</phase>
+					<goals>
+						<goal>check</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		
+		<!-- SpotBugs Plugin for finding bugs -->
+		<plugin>
+			<groupId>com.github.spotbugs</groupId>
+			<artifactId>spotbugs-maven-plugin</artifactId>
+			<version>4.8.2.0</version>
+			<configuration>
+				<effort>Max</effort>
+				<threshold>Low</threshold>
+				<xmlOutput>true</xmlOutput>
+			</configuration>
+			<executions>
+				<execution>
+					<goals>
+						<goal>check</goal>
+					</goals>
+				</execution>
+			</executions>
+		</plugin>
+		
+		<!-- PMD Plugin for code analysis -->
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-pmd-plugin</artifactId>
+			<version>3.21.2</version>
+			<configuration>
+				<sourceEncoding>UTF-8</sourceEncoding>
+				<minimumTokens>100</minimumTokens>
+				<targetJdk>21</targetJdk>
+				<excludes>
+					<exclude>**/*Bean.java</exclude>
+					<exclude>**/generated/*.java</exclude>
+				</excludes>
+				<excludeRoots>
+					<excludeRoot>target/generated-sources/stubs</excludeRoot>
+				</excludeRoots>
+			</configuration>
+			<executions>
+				<execution>
+					<goals>
+						<goal>check</goal>
+					</goals>
+				</execution>
+			</executions>
 		</plugin>
 	</plugins>
 </build>

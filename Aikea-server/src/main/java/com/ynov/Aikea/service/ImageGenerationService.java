@@ -12,7 +12,6 @@ import io.github.sashirestela.openai.domain.image.Size;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.*;
@@ -28,13 +27,9 @@ import java.nio.file.Paths;
 
 @Service
 @RequiredArgsConstructor
-public class ImageGenerationService {
-
-    private final OpenAICallsService openAICallsService;
+public class ImageGenerationService {    private final OpenAICallsService openAICallsService;
     private final UploadService uploadService;
     private final RecordedImagesRepository recordedImagesRepository;
-
-    private final MediaType imageType = MediaType.IMAGE_PNG;
 
     private String basePath;
     private final ResourceLoader resourceLoader;
@@ -61,36 +56,62 @@ public class ImageGenerationService {
                 throw new RuntimeException("Failed to resolve or create image directory", ex);
             }
         }
-    }
-
-    public GeneratedImageDTO generateAndSaveImage(String prompt, QualityEnum quality) throws Exception {
-        // Obtenir l'image de DALL-E sous forme de tableau d'octets
-        String imageUrl= getImageUrlFromDalle(prompt, quality);
-        byte[] content = getImageFromUrl(imageUrl);
-
-        // Vérifier que l'image a bien été obtenue
-        if (content == null || content.length == 0) {
-            throw new RuntimeException("Failed to generate image from DALL-E");
+    }    public GeneratedImageDTO generateAndSaveImage(String prompt, QualityEnum quality) throws Exception {
+        // Validate input
+        if (prompt == null || prompt.trim().isEmpty()) {
+            throw new Exception("Prompt cannot be null or empty");
+        }
+        
+        if (quality == null) {
+            quality = QualityEnum.MEDIUM; // Default quality
         }
 
-        // Enregistrer l'image dans la base de données
-        RecordedImage recordedImage = saveImage(prompt, content, quality);
+        System.out.println("Starting image generation process for prompt: " + prompt);
+        
+        try {
+            // Obtenir l'image de DALL-E sous forme de tableau d'octets
+            String imageUrl = getImageUrlFromDalle(prompt, quality);
+            byte[] content = getImageFromUrl(imageUrl);
 
-        // Enregistrer l'image sur le disque
-        saveOnComputer(prompt, content);
+            // Vérifier que l'image a bien été obtenue
+            if (content == null || content.length == 0) {
+                throw new RuntimeException("Failed to generate image from DALL-E: empty content received");
+            }
 
+            // Enregistrer l'image dans la base de données
+            RecordedImage recordedImage = saveImage(prompt, content, quality);
 
-        return GeneratedImageDTO
-                .builder()
-                .image(content)
-                .internalID(recordedImage.getId())
-                .externalID(recordedImage.getCloudID())
-                .storageURL(recordedImage.getCloudURI())
-                .url(imageUrl)
-                .build();
-    }
+            // Enregistrer l'image sur le disque
+            saveOnComputer(prompt, content);
 
-    public String getImageUrlFromDalle(String prompt, QualityEnum quality) throws Exception {
+            System.out.println("Image generation completed successfully. Size: " + content.length + " bytes");
+
+            return GeneratedImageDTO
+                    .builder()
+                    .image(content)
+                    .internalID(recordedImage.getId())
+                    .externalID(recordedImage.getCloudID())
+                    .storageURL(recordedImage.getCloudURI())
+                    .url(imageUrl)
+                    .build();
+                    
+        } catch (Exception e) {
+            System.err.println("Image generation failed for prompt: " + prompt + " - " + e.getMessage());
+            e.printStackTrace();
+            
+            // Provide more specific error messages based on common issues
+            String errorMessage = e.getMessage();
+            if (errorMessage.contains("quota") || errorMessage.contains("billing")) {
+                throw new Exception("OpenAI API quota exceeded or billing issue. Please check your OpenAI account.", e);
+            } else if (errorMessage.contains("invalid") && errorMessage.contains("key")) {
+                throw new Exception("Invalid OpenAI API key. Please check your configuration.", e);
+            } else if (errorMessage.contains("content policy")) {
+                throw new Exception("Image generation request violates OpenAI content policy. Please modify your prompt.", e);
+            } else {
+                throw new Exception("Failed to generate image: " + errorMessage, e);
+            }
+        }
+    }public String getImageUrlFromDalle(String prompt, QualityEnum quality) throws Exception {
         ImageRequest imageRequest = null;
 
         if(quality == QualityEnum.LOW) {
@@ -121,36 +142,51 @@ public class ImageGenerationService {
                     .model("dall-e-3")
                     .build() ;
         }
-try {
-    return openAICallsService.generateWithDalle(imageRequest);
 
-}catch (Exception e) {
-    throw new Exception("No URL sent by OpenAI"+e.getMessage()) ;
-
-}
-
-
-    }
-    public byte[] getImageFromUrl(String imageUrl) throws Exception {
-
-        if (imageUrl != null) {
-            try {
-                RestTemplate restTemplate = new RestTemplate();
-                URI uri = new URI(imageUrl);
-                RequestEntity<Void> request = RequestEntity.get(uri).build();
-                ResponseEntity<byte[]> imageResponse = restTemplate.exchange(request, byte[].class);
-
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(imageType);
-
-                return imageResponse.getBody();
-            } catch (Exception e) {
-                e.printStackTrace();
-                throw e ;
+        try {
+            System.out.println("Generating image for prompt: " + prompt + " with quality: " + quality);
+            String imageUrl = openAICallsService.generateWithDalle(imageRequest);
+            
+            if (imageUrl == null || imageUrl.trim().isEmpty()) {
+                throw new Exception("OpenAI service returned null or empty URL");
             }
+            
+            System.out.println("Successfully generated image URL: " + imageUrl);
+            return imageUrl;
+            
+        } catch (Exception e) {
+            System.err.println("Failed to generate image with DALL·E: " + e.getMessage());
+            e.printStackTrace();
+            throw new Exception("Image generation failed: " + e.getMessage(), e);
+        }
+    }    public byte[] getImageFromUrl(String imageUrl) throws Exception {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            throw new Exception("Image URL is null or empty");
         }
 
-        throw new Exception("No URL sent by OpenAI") ;
+        try {
+            System.out.println("Downloading image from URL: " + imageUrl);
+            RestTemplate restTemplate = new RestTemplate();
+            URI uri = new URI(imageUrl);
+            RequestEntity<Void> request = RequestEntity.get(uri).build();
+            ResponseEntity<byte[]> imageResponse = restTemplate.exchange(request, byte[].class);
+
+            if (imageResponse.getStatusCode() != HttpStatus.OK) {
+                throw new Exception("Failed to download image. HTTP status: " + imageResponse.getStatusCode());
+            }
+
+            byte[] imageBytes = imageResponse.getBody();
+            if (imageBytes == null || imageBytes.length == 0) {
+                throw new Exception("Downloaded image is empty or null");
+            }
+
+            System.out.println("Successfully downloaded image. Size: " + imageBytes.length + " bytes");
+            return imageBytes;
+              } catch (Exception e) {
+            System.err.println("Failed to download image from URL: " + imageUrl + " - " + e.getMessage());
+            e.printStackTrace();
+            throw new Exception("Failed to download image: " + e.getMessage(), e);
+        }
     }
 
 
@@ -328,5 +364,27 @@ try {
         }
 
         return !fileName.isEmpty() ? fileName.toString().toLowerCase() + ".png" : "file.png";
+    }
+
+    /**
+     * Test method to verify OpenAI API key is working
+     */
+    public boolean testOpenAIConnection() {
+        try {
+            // Try a simple, low-cost request to test the API key
+            ImageRequest testRequest = ImageRequest.builder()
+                    .prompt("test")
+                    .n(1)
+                    .size(Size.X256)
+                    .responseFormat(ImageResponseFormat.URL)
+                    .model("dall-e-2")
+                    .build();
+            
+            String testUrl = openAICallsService.generateWithDalle(testRequest);
+            return testUrl != null && !testUrl.trim().isEmpty();
+        } catch (Exception e) {
+            System.err.println("OpenAI API test failed: " + e.getMessage());
+            return false;
+        }
     }
 }
