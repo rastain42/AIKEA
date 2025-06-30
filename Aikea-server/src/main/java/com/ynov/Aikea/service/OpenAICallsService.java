@@ -43,7 +43,7 @@ public class OpenAICallsService {
         var imageResponse = futureImage.join();
         imageResponse.forEach(img -> System.out.println("\n" + img.getUrl()));
 
-        return imageResponse.getFirst().getUrl() ;
+        return imageResponse.get(0).getUrl() ;
     }
 
     public String generateWithDalle(ImageRequest imageRequest) throws Exception {
@@ -62,7 +62,7 @@ public class OpenAICallsService {
                 throw new Exception("OpenAI returned empty response");
             }
             
-            var firstImage = imageResponse.getFirst();
+            var firstImage = imageResponse.get(0);
             if (firstImage == null) {
                 throw new Exception("OpenAI returned null image data");
             }

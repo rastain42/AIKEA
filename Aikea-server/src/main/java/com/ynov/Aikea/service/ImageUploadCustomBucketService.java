@@ -534,11 +534,11 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                 log.info("✅ Response body (length: {}): {}", responseBody.length(), 
                     responseBody.length() > 500 ? responseBody.substring(0, 500) + "..." : responseBody);
                 
-                // TODO: Parser le JSON et retourner la liste réelle
+                // Parser le JSON et retourner la liste réelle
                 try {
-                    // Pour l'instant, retourner une liste vide mais noter le succès
-                    log.info("🎉 SUCCESS! External bucket responded with HTTP {}", responseCode);
-                    return new ArrayList<>();
+                    List<Map<String, String>> documents = parseJsonResponse(responseBody);
+                    log.info("🎉 SUCCESS! External bucket responded with HTTP {} and {} documents", responseCode, documents.size());
+                    return documents;
                 } catch (Exception e) {
                     log.error("❌ Failed to parse JSON response", e);
                     return new ArrayList<>();
@@ -917,7 +917,40 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                             if (uploadNode.has("idExterne")) {
                                 String idExterne = uploadNode.get("idExterne").asText();
                                 file.put("id", idExterne);
-                                file.put("name", idExterne);
+                                // Ne pas utiliser idExterne comme nom par défaut
+                            }
+                            
+                            // Nom lisible : priorité description > tag3 > originalName > fileName > idExterne
+                            String displayName = null;
+                            if (uploadNode.has("description") && !uploadNode.get("description").asText().isEmpty()) {
+                                displayName = uploadNode.get("description").asText();
+                            } else if (uploadNode.has("tag3") && !uploadNode.get("tag3").asText().isEmpty()) {
+                                displayName = uploadNode.get("tag3").asText();
+                            } else if (uploadNode.has("originalName") && !uploadNode.get("originalName").asText().isEmpty()) {
+                                displayName = uploadNode.get("originalName").asText();
+                            } else if (uploadNode.has("fileName") && !uploadNode.get("fileName").asText().isEmpty()) {
+                                displayName = uploadNode.get("fileName").asText();
+                            } else if (uploadNode.has("idExterne")) {
+                                displayName = uploadNode.get("idExterne").asText();
+                            }
+                            
+                            if (displayName != null) {
+                                file.put("name", displayName);
+                            }
+                            
+                            // Ajouter originalName si disponible
+                            if (uploadNode.has("originalName") && !uploadNode.get("originalName").asText().isEmpty()) {
+                                file.put("originalName", uploadNode.get("originalName").asText());
+                            }
+                            
+                            // Ajouter description si disponible
+                            if (uploadNode.has("description") && !uploadNode.get("description").asText().isEmpty()) {
+                                file.put("description", uploadNode.get("description").asText());
+                            }
+                            
+                            // Ajouter fileName si disponible
+                            if (uploadNode.has("fileName") && !uploadNode.get("fileName").asText().isEmpty()) {
+                                file.put("fileName", uploadNode.get("fileName").asText());
                             }
                             
                             if (uploadNode.has("url")) {
@@ -970,10 +1003,64 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                     // Extraire idExterne
                     java.util.regex.Pattern idPattern = java.util.regex.Pattern.compile("\"([^\"]+)\"");
                     java.util.regex.Matcher idMatcher = idPattern.matcher(block);
+                    String idExterne = null;
                     if (idMatcher.find()) {
-                        String idExterne = idMatcher.group(1);
+                        idExterne = idMatcher.group(1);
                         file.put("id", idExterne);
-                        file.put("name", idExterne);
+                    }
+                    
+                    // Extraire originalName
+                    java.util.regex.Pattern originalNamePattern = java.util.regex.Pattern.compile("\"originalName\":\"([^\"]+)\"");
+                    java.util.regex.Matcher originalNameMatcher = originalNamePattern.matcher(block);
+                    String originalName = null;
+                    if (originalNameMatcher.find() && !originalNameMatcher.group(1).isEmpty()) {
+                        originalName = originalNameMatcher.group(1);
+                        file.put("originalName", originalName);
+                    }
+                    
+                    // Extraire description
+                    java.util.regex.Pattern descriptionPattern = java.util.regex.Pattern.compile("\"description\":\"([^\"]+)\"");
+                    java.util.regex.Matcher descriptionMatcher = descriptionPattern.matcher(block);
+                    String description = null;
+                    if (descriptionMatcher.find() && !descriptionMatcher.group(1).isEmpty()) {
+                        description = descriptionMatcher.group(1);
+                        file.put("description", description);
+                    }
+                    
+                    // Extraire fileName
+                    java.util.regex.Pattern fileNamePattern = java.util.regex.Pattern.compile("\"fileName\":\"([^\"]+)\"");
+                    java.util.regex.Matcher fileNameMatcher = fileNamePattern.matcher(block);
+                    String fileName = null;
+                    if (fileNameMatcher.find() && !fileNameMatcher.group(1).isEmpty()) {
+                        fileName = fileNameMatcher.group(1);
+                        file.put("fileName", fileName);
+                    }
+                    
+                    // Extraire tag3 pour le nom
+                    java.util.regex.Pattern tag3Pattern = java.util.regex.Pattern.compile("\"tag3\":\"([^\"]+)\"");
+                    java.util.regex.Matcher tag3Matcher = tag3Pattern.matcher(block);
+                    String tag3 = null;
+                    if (tag3Matcher.find() && !tag3Matcher.group(1).isEmpty()) {
+                        tag3 = tag3Matcher.group(1);
+                        file.put("tag3", tag3);
+                    }
+                    
+                    // Définir le nom avec priorité : description > tag3 > originalName > fileName > idExterne
+                    String displayName = null;
+                    if (description != null && !description.isEmpty()) {
+                        displayName = description;
+                    } else if (tag3 != null && !tag3.isEmpty()) {
+                        displayName = tag3;
+                    } else if (originalName != null && !originalName.isEmpty()) {
+                        displayName = originalName;
+                    } else if (fileName != null && !fileName.isEmpty()) {
+                        displayName = fileName;
+                    } else if (idExterne != null) {
+                        displayName = idExterne;
+                    }
+                    
+                    if (displayName != null) {
+                        file.put("name", displayName);
                     }
                     
                     // Extraire URL
@@ -985,7 +1072,7 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                         file.put("viewUrl", urlMatcher.group(1));
                     }
                     
-                    // Extraire tags
+                    // Extraire tags (tag1 et tag2 seulement, tag3 est extrait plus haut)
                     java.util.regex.Pattern tag1Pattern = java.util.regex.Pattern.compile("\"tag1\":\"([^\"]+)\"");
                     java.util.regex.Matcher tag1Matcher = tag1Pattern.matcher(block);
                     if (tag1Matcher.find() && !tag1Matcher.group(1).isEmpty()) {
@@ -996,12 +1083,6 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
                     java.util.regex.Matcher tag2Matcher = tag2Pattern.matcher(block);
                     if (tag2Matcher.find() && !tag2Matcher.group(1).isEmpty()) {
                         file.put("tag2", tag2Matcher.group(1));
-                    }
-                    
-                    java.util.regex.Pattern tag3Pattern = java.util.regex.Pattern.compile("\"tag3\":\"([^\"]+)\"");
-                    java.util.regex.Matcher tag3Matcher = tag3Pattern.matcher(block);
-                    if (tag3Matcher.find() && !tag3Matcher.group(1).isEmpty()) {
-                        file.put("tag3", tag3Matcher.group(1));
                     }
                     
                     // Propriétés par défaut
@@ -1026,5 +1107,13 @@ public class ImageUploadCustomBucketService implements ImageUploadService {
             log.error("❌ Error parsing curl JSON response", e);
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * Parser la réponse JSON (réutilise la logique de parseCurlJsonResponse)
+     */
+    private List<Map<String, String>> parseJsonResponse(String jsonResponse) {
+        // Réutiliser la même logique que parseCurlJsonResponse
+        return parseCurlJsonResponse(jsonResponse);
     }
 }
