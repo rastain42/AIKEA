@@ -3,9 +3,10 @@
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)
 ![React Native](https://img.shields.io/badge/React%20Native-Expo-blue)
+![Web](https://img.shields.io/badge/Web-Expo-purple)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
 
-Plateforme complète de génération de contenu IA avec backend Spring Boot et application mobile React Native/Expo.
+Plateforme complète de génération de contenu IA avec backend Spring Boot et application universelle Expo (Mobile + Web).
 
 ## 📋 Prérequis
 
@@ -23,7 +24,7 @@ AIKEA/
 │   ├── docker-compose.yml
 │   ├── pom.xml
 │   └── ...
-├── aikea--app/           # Application mobile Expo
+├── aikea--app/           # Application universelle Expo (Mobile + Web)
 │   ├── app/
 │   ├── package.json
 │   └── ...
@@ -83,7 +84,7 @@ cd Aikea-server
 - `POST /api/images/generate` - Génération d'images
 - `POST /api/text/generate` - Génération de texte
 
-### 4. 📱 Lancer l'Application Mobile
+### 4. 📱🌐 Lancer l'Application (Mobile + Web)
 
 ```bash
 # Aller dans le dossier de l'app
@@ -98,10 +99,10 @@ npx expo start
 
 **Options d'exécution :**
 
-- Scannez le QR code avec l'app **Expo Go** sur votre téléphone
-- Appuyez sur **`a`** pour ouvrir dans un émulateur Android
-- Appuyez sur **`i`** pour ouvrir dans un simulateur iOS
-- Appuyez sur **`w`** pour ouvrir dans le navigateur web
+- 🌐 Appuyez sur **`w`** pour ouvrir dans le navigateur web
+- 📱 Scannez le QR code avec l'app **Expo Go** sur votre téléphone
+- 🤖 Appuyez sur **`a`** pour ouvrir dans un émulateur Android
+- 🍎 Appuyez sur **`i`** pour ouvrir dans un simulateur iOS
 
 ## 🛠️ Commandes Utiles
 
@@ -168,7 +169,7 @@ cloudinary:
   api-secret: YOUR_API_SECRET
 ```
 
-### Configuration App Mobile
+### Configuration App (Mobile + Web)
 
 Modifiez les URLs dans l'app pour pointer vers votre backend :
 
@@ -246,8 +247,8 @@ spring:
 
 ### Frontend
 
-- **React Native** - Framework mobile
-- **Expo** - Plateforme de développement
+- **React Native** - Framework mobile/web
+- **Expo** - Plateforme de développement universelle (Mobile + Web)
 - **TypeScript** - Langage typé
 - **Expo Router** - Navigation
 
