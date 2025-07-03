@@ -1,5 +1,7 @@
 # 🚀 AIKEA - Plateforme de Génération IA
 
+Romain Michel et Billie Sautour
+
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.5-brightgreen)
 ![React Native](https://img.shields.io/badge/React%20Native-Expo-blue)
@@ -151,23 +153,8 @@ npx expo start -c
 
 ### Variables d'Environnement Backend
 
-Créez un fichier `application-local.yml` dans `src/main/resources/` :
+Créez un fichier `application-local.yml` dans `src/main/resources/`
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://localhost:3306/javadb
-    username: javauser
-    password: javapass
-
-openai:
-  api-key: YOUR_OPENAI_API_KEY
-
-cloudinary:
-  cloud-name: YOUR_CLOUD_NAME
-  api-key: YOUR_API_KEY
-  api-secret: YOUR_API_SECRET
-```
 
 ### Configuration App (Mobile + Web)
 
